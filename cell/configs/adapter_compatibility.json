@@ -1,0 +1,7 @@
+{
+  "semantic_payload_sha256": "103cd32135a6d96aa0801e591c7cece5aed45352d13373cf36cdea50675de178",
+  "source_cohort_binding_sha256": "78252c8ba4552352e10d94ab0e2074704df6a3b3b7a5dde2fe44cc170bcf2c32",
+  "taxonomy_content_sha256": "cb899e6f183a7542d207a1a9eaad99e79a0028d36e2b557978d745efc518b47d",
+  "taxonomy_file": "cell/configs/taxonomy_coarse11.json",
+  "scope": "The selected adapter cohort with only the taxonomy location changed; every sample, fold, row count, molecular-label hash and taxonomy byte must retain its declared identity."
+}

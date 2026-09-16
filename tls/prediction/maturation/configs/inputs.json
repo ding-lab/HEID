@@ -1,0 +1,9 @@
+{
+  "cells": "${PROJECTS_ROOT}/tls/maturation/cells",
+  "raw_markers": "${PROJECTS_ROOT}/tls/maturation/raw_markers",
+  "tls_membership": "${PROJECTS_ROOT}/tls/maturation/tls_membership",
+  "region_grids": "${PROJECTS_ROOT}/tls/maturation/region_grids",
+  "features": "${PROJECTS_ROOT}/tls/maturation/features",
+  "samples": "${PROJECTS_ROOT}/tls/maturation/samples.parquet",
+  "groups": "${PROJECTS_ROOT}/tls/maturation/groups.parquet"
+}

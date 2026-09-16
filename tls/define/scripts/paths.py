@@ -1,0 +1,15 @@
+import os
+from pathlib import Path
+PROJECTS = Path(os.environ.get("PROJECTS_ROOT", "/data/heid"))
+WORKSPACE = Path(os.environ.get("TLS_DEFINE_WORKSPACE", str(PROJECTS / "tls/define")))
+ACCEPTED = Path(os.environ.get("TLS_ACCEPTED_ROOT", str(WORKSPACE / "accepted")))
+CELLS = Path(os.environ.get("TLS_H5AD_DIR", str(WORKSPACE / "cells")))
+PROGRAMS = Path(os.environ.get("TLS_SCORE_DIR", str(WORKSPACE / "program_scores")))
+GC = Path(os.environ.get("TLS_GC_DIR", str(WORKSPACE / "gc_scores")))
+ZONE_ROOT = Path(os.environ.get("TLS_BOUNDARY_ZONES", str(WORKSPACE / "tumor_zones")))
+SIDE_ROOT = Path(os.environ.get("TLS_BOUNDARY_SIDES", str(WORKSPACE / "tumor_sides")))
+CELL_TYPES = Path(os.environ.get("TLS_CELL_TYPES", str(WORKSPACE / "cell_types")))
+STATE_REFERENCE = Path(os.environ.get("TLS_STATE_REFERENCE", str(WORKSPACE / "state_reference.csv")))
+REPORT = Path(os.environ.get("TLS_REPORT_OUTPUT", str(WORKSPACE / "outputs/reporting")))
+FULL_EXPRESSION = Path(os.environ.get("TLS_EXPRESSION_H5AD", str(WORKSPACE / "expression.h5ad")))
+ROW_INDEX = Path(os.environ.get("TLS_EXPRESSION_INDEX", str(WORKSPACE / "expression_rows.tsv")))

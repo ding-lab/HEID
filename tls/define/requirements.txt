@@ -1,0 +1,3 @@
+# Observed optional full-expression scoring environment; not a fresh-environment validation.
+anndata==0.11.4
+decoupler==2.1.4

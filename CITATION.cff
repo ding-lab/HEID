@@ -1,0 +1,12 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite the paper and this repository."
+title: "HEID: cell types and tissue structures from H&E across cancers"
+type: software
+authors:
+  - family-names: Xiong
+    given-names: Jiajie
+license: Apache-2.0
+abstract: >-
+  H&E cell classification and image alignment, molecular definition of tumor boundaries,
+  TLS and Schwann/Glial regions, and separate H&E tumor-boundary prediction, TLS region and
+  maturation prediction, and nerve-region geometry on image-derived cell probabilities.

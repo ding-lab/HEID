@@ -1,0 +1,26 @@
+{
+ "scope": "Cell heads accepted by the new-slide inference entry. The head is identified by the experiment_id stored in its checkpoint; the per-slide metadata records that identity and the checkpoint checksum so a prediction table can always be traced to the head that produced it.",
+ "released_head": "v12_cls_sigma3_region_schwann_v1",
+ "accepted_heads": {
+  "v12_cls_sigma3_region_schwann_v1": {
+   "schwann_definition": "region-Schwann",
+   "role": "released head fitted with the region-Schwann identity objective",
+   "fold0_sha256": "fc90fc0d112554d9a296ad2e0943db6711cc3ab0d6e3075c2024ac8d9c621e6c"
+  },
+  "heid_cls_sigma3": {
+   "schwann_definition": "region-Schwann",
+   "role": "head refitted from this package with cell/configs/arm_cls_sigma3.json",
+   "fold0_sha256": null
+  },
+  "v8_all5k_cls_sigma3_v1": {
+   "schwann_definition": "all-Schwann",
+   "role": "reference head fitted with every labelled Schwann cell; produced the development-cohort clinical products and the Nerve evaluation replay",
+   "fold0_sha256": "8e8bc20851c0829e0e5642fbfff26831c7146e6dfcdd60f3484946850e4c940a"
+  },
+  "heid_cls_sigma3_all_schwann": {
+   "schwann_definition": "all-Schwann",
+   "role": "reference head refitted from this package with cell/configs/arm_cls_sigma3_all_schwann.json",
+   "fold0_sha256": null
+  }
+ }
+}
