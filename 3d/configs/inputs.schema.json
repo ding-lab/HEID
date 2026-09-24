@@ -1,0 +1,319 @@
+{
+  "schema": "heid.inputs.v1",
+  "branch": "3d",
+  "root": "${THREED_ROOT} (default ${PROJECTS_ROOT}/3d); samples under samples/<sample>/, block inference under inference/<set>/",
+  "order": [
+    "scripts/block_manifest.py, then scripts/rebox_manifest.py (block manifest; scripts/cohort_manifest.py for per-section OME-TIFF deliveries)",
+    "scripts/run_block_stage.py detect|grid|infer <block> (per block: detect_cells.py, tissue_grid.py, infer_cells.py)",
+    "scripts/split_from_manifest.py --tsv-only, then --index <i> per section",
+    "scripts/prepare_sections.py --index <i> per section, then scripts/sections_area_from_prep.py",
+    "scripts/celltype_join.py",
+    "pipeline/solve_edges.sh per edge (pairwise_registration.py); scripts/parity_vote.py for two-block slides",
+    "scripts/align_planes.py, then scripts/build_tiles.py --levels 2 (alignment planes)",
+    "scripts/duct_anchor_align.py --extract-only per section, --sections Ua,Ub per pair, then pipeline/anchors_retry.sh",
+    "scripts/align3d_consensus.py",
+    "scripts/build_volume_planes.py per section and --finalize; scripts/build_he_rgb.py",
+    "scripts/build_cell_planes.py, scripts/merge_cellmeta_bases.py, scripts/build_cell_points.py",
+    "scripts/build_tiles.py (grey, then --rgb)",
+    "second-scan arm: scripts/register_xenium_cloud.py or scripts/fit_he_swap_offset.py, then scripts/build_swap_planes.py",
+    "scripts/build_meshes.py, scripts/build_cloud.py",
+    "scripts/tls_define_he.py per section, then pipeline/tls3d_chain.sh",
+    "scripts/build_duct_lumen2d.py per section, then scripts/build_duct_lumen3d.py --from-2d and scripts/build_meshes.py with HTAN3D_CARVE",
+    "scripts/build_nerve_operator3d.py, scripts/nerve_denoise_frozen.py, scripts/build_nerve_curves3d.py, scripts/make_denoised_planes.py, scripts/make_denoised3d.py, scripts/nerve_table.py and the nerve figure scripts",
+    "scripts/build_tumor_planes.py, scripts/annotate_in_tumor.py, scripts/tumor_region_figures.py",
+    "scripts/export_cell_table_2d.py, scripts/build_viewer_server.py, scripts/sync_check.py, scripts/deliverables_check.py",
+    "pipeline/run_front.sh and pipeline/run_back.sh submit these steps as LSF jobs in this order"
+  ],
+  "inputs": [
+    {
+      "name": "scans",
+      "path": "${THREED_DATA_ROOT}/HE/<sample>/<slide>/Scan1/<slide>_Scan1.qptiff, or one OME-TIFF per section",
+      "env": "THREED_DATA_ROOT",
+      "format": "whole-slide H&E (Akoya qptiff with SampleMask.tif beside it, or pyramidal OME-TIFF); level-0 pixel size in the TIFF resolution tag",
+      "consumed_by": [
+        "scripts/block_manifest.py",
+        "scripts/rebox_manifest.py",
+        "scripts/split_from_manifest.py",
+        "scripts/run_block_stage.py"
+      ]
+    },
+    {
+      "name": "block_manifest",
+      "path": "<inference root>/configs/<set>/run_manifest.tsv",
+      "env": "BLOCK_INFERENCE_ROOT, BLOCK_SET",
+      "produced_by": [
+        "scripts/block_manifest.py",
+        "scripts/rebox_manifest.py"
+      ],
+      "columns": {
+        "slide": "block id <sample>_U<n>",
+        "svs": "path of the scan",
+        "native_mpp": "level-0 micrometres per pixel",
+        "level0_W": "crop width, px",
+        "level0_H": "crop height, px",
+        "crop_x0": "level-0 px",
+        "crop_y0": "level-0 px",
+        "crop_x1": "level-0 px",
+        "crop_y1": "level-0 px",
+        "full_W": "scan width, px",
+        "full_H": "scan height, px",
+        "sample": "sample id",
+        "block_position": "top or bottom",
+        "patient": "patient or block key",
+        "section_number": "serial number u",
+        "block_mask": "optional outline PNG of a block whose box overlaps a neighbour"
+      },
+      "consumed_by": [
+        "scripts/run_block_stage.py",
+        "scripts/split_from_manifest.py",
+        "scripts/celltype_join.py",
+        "pipeline/run_front.sh"
+      ]
+    },
+    {
+      "name": "sections_table",
+      "path": "samples/<sample>/configs/sections.tsv",
+      "produced_by": [
+        "scripts/split_from_manifest.py",
+        "scripts/sections_area_from_prep.py"
+      ],
+      "columns": {
+        "section_id": "string",
+        "u_number": "integer",
+        "z_position_um": "float",
+        "modality": "he, codex or xenium",
+        "filepath": "section OME-TIFF",
+        "mpp": "float"
+      },
+      "consumed_by": [
+        "scripts/prepare_sections.py",
+        "scripts/align_planes.py",
+        "scripts/build_volume_planes.py",
+        "pipeline/run_back.sh"
+      ]
+    },
+    {
+      "name": "sample_config",
+      "path": "<sample>.sh (copy of configs/sample.example.sh)",
+      "format": "bash assignments of the keys below; configs/sample.example.sh is a template",
+      "consumed_by": [
+        "pipeline/run_front.sh",
+        "pipeline/run_back.sh",
+        "pipeline/tls3d_chain.sh",
+        "pipeline/page_stage.sh",
+        "scripts/deliverables_check.py",
+        "scripts/sync_check.py"
+      ],
+      "keys": {
+        "required": {
+          "SAMPLE": "sample id",
+          "TAG": "job-name prefix",
+          "G5": "sample directory ($THREED_ROOT/samples/$SAMPLE)",
+          "GEN": "directory holding configs/split_provenance.json",
+          "MAN": "sections table",
+          "RAW": "raw product root",
+          "PREP": "prepared sections",
+          "INFER": "block inference root",
+          "RUNMAN": "block manifest",
+          "JOIN": "cell join output or -",
+          "WMAPS": "weight maps or -",
+          "SUFFIX": "volume suffix",
+          "JOIN_MATCH": "section or file",
+          "EDGES": "coarse solve results",
+          "EDGES_TSV": "edge table",
+          "SECTIONS_DIR": "section OME-TIFFs",
+          "SWAP": "1 when sections were scanned twice",
+          "SWAP_MOD": "codex or he",
+          "SWAP_RESIDUAL": "fit, cloud or none",
+          "SWAP_TILES": "second-arm tile directory",
+          "XENIUM": "1: Xenium annotation layers",
+          "XENIUM9": "1: predicted cells of Xenium-only planes",
+          "VOL": "8 um volume",
+          "TILES": "tile directory",
+          "TILES_ROOT": "volume and tile root",
+          "PAGE": "viewer data directory",
+          "DELIV": "delivery directory",
+          "PRED": "prediction tables",
+          "EXCLUDE": "section exclusions",
+          "OBJ3D": "objects directory",
+          "S14": "nerve objects",
+          "S12": "point cloud",
+          "TLSROOT": "per-section TLS products",
+          "TLS_SECTIONS": "sections table for TLS or -",
+          "LOGS": "job logs",
+          "QUEUE": "queue of large arrays",
+          "LIGHT_QUEUE": "queue of short jobs",
+          "NERVE": "1: nerve chain",
+          "ANCHOR_MEM": "GB per anchor job",
+          "ANCHOR_QUEUE": "anchor queue",
+          "ANCHOR_CORES": "cores per anchor job",
+          "AFFINE_MIN_N": "core anchors for a free affine"
+        },
+        "when SWAP=1": {
+          "SWAP_PREP": "prepared second scans",
+          "SWAP_MAN": "sections table of the second scans",
+          "SWAP_EDGES": "edges for the second-scan planes",
+          "SWAP_VOL_EDGES": "edges for the second-scan volume",
+          "N_SWAP": "number of twice-scanned sections",
+          "SWAP_CELLS_FRAME": "optional; main when the cells were predicted on H&E"
+        },
+        "Xenium": {
+          "XENIUM_ANN": "annotation directory",
+          "XENIUM_NAME": "layer name",
+          "XENIUM_REG": "xenium_sections.json",
+          "XENIUM_MARKERS": "1: type cells by marker genes",
+          "XENIUM_ARM": "swap or main",
+          "XENIUM_PLACER": "swap or main",
+          "XENIUM_OUT": "canvas layer directory",
+          "XENIUM_FRAME": "1: TLS in each run's own frame",
+          "XENIUM_RUNS": "Xenium output bundles"
+        },
+        "optional": {
+          "ANCHOR": "chain anchor section (default: middle by depth)",
+          "HE_REG": "od: prep registers on the luminance optical density",
+          "PREP_MEM": "GB",
+          "PREP_CORES": "cores",
+          "SPLIT_MEM": "GB",
+          "DUCT_MEM": "GB",
+          "TLS2D_MEM": "GB",
+          "TLS3D_MEM": "GB",
+          "EXAMPLES_MEM": "GB",
+          "ANCHORFIX_MEM": "GB",
+          "RETRY_PAR": "parallel retry pairs",
+          "CROP_PAR": "parallel crop shards"
+        }
+      }
+    },
+    {
+      "name": "cell_model",
+      "path": "${PROJECTS_ROOT}/cell/outputs/models/{head/cls_sigma3_all_schwann, adapters/raw_rgb}",
+      "env": "THREED_CELL_HEAD_DIR",
+      "format": "Cell reference head (fold 0) and its UNI2-h and Phikon-v2 LoRA adapters; UNI2-h, Phikon-v2 and the fine-tuned InstanSeg weights as described by cell/configs/inputs.schema.json",
+      "consumed_by": [
+        "scripts/infer_cells.py",
+        "scripts/tissue_grid.py",
+        "scripts/detect_cells.py"
+      ]
+    },
+    {
+      "name": "morphology_stats",
+      "path": "${PROJECTS_ROOT}/cell/inputs/morpho_zscore_stats.json",
+      "env": "CELL_MORPHO_STATS",
+      "format": "per-feature mean and standard deviation; read by detect_cells.py at start-up",
+      "consumed_by": [
+        "scripts/detect_cells.py"
+      ]
+    },
+    {
+      "name": "section_exclusions",
+      "path": "samples/<sample>/configs/exclude_sections_3d.json",
+      "format": "{\"sections\": [section_id, ...]}",
+      "consumed_by": [
+        "scripts/build_meshes.py",
+        "scripts/build_cloud.py",
+        "scripts/build_nerve_operator3d.py",
+        "scripts/make_denoised3d.py"
+      ]
+    },
+    {
+      "name": "frozen_tls",
+      "path": "samples/<sample>/configs/tls3d_frozen.tsv",
+      "format": "optional; columns object_id, n_measured_sections, z_min_um, z_max_um, cx_um_canvas, cy_um_canvas, member_tls (<section_id>:<TLS id> separated by ;)",
+      "consumed_by": [
+        "scripts/tls_tier_ids.py",
+        "pipeline/tls3d_chain.sh",
+        "scripts/build_viewer_server.py"
+      ]
+    },
+    {
+      "name": "nerve_local_rescue",
+      "path": "<volume_8um>/nerve_local_rescue.json",
+      "format": "optional; {\"version\": 1, \"cell_class\": \"Schwann\", \"records\": [{index, section_id, cell_points_sha256, rows}]}: reviewed rows of original Schwann predictions added to the 3-D denoised layer",
+      "consumed_by": [
+        "scripts/make_denoised3d.py",
+        "scripts/nerve_members_2d.py"
+      ]
+    },
+    {
+      "name": "patient_split",
+      "path": "<GEN>/configs/split_provenance.json",
+      "env": "HTAN3D_GEN",
+      "format": "two-block slides: {\"patients\": {<patient>: [u, ...]}, \"microns_per_u\": 5.0, \"u_numbers\": [...]}",
+      "consumed_by": [
+        "scripts/aggregate_two_block.py",
+        "scripts/parity_vote.py"
+      ]
+    },
+    {
+      "name": "edges_table",
+      "path": "samples/<sample>/configs/edges_M.tsv",
+      "format": "columns u_a, u_b, dz_um; written by pipeline/run_front.sh solve when absent",
+      "consumed_by": [
+        "pipeline/solve_edges.sh"
+      ]
+    },
+    {
+      "name": "pair_examples",
+      "path": "samples/<sample>/configs/pair_examples.txt",
+      "format": "optional; one Ua,Ub pair per line",
+      "consumed_by": [
+        "pipeline/pair_examples.sh"
+      ]
+    },
+    {
+      "name": "retry_skip",
+      "path": "<objects_3d>/S16_align3d/retry_skip.txt",
+      "format": "optional; one Ua,Ub pair per line left out of the 1 um anchor retry",
+      "consumed_by": [
+        "pipeline/anchors_retry.sh"
+      ]
+    },
+    {
+      "name": "xenium_sections",
+      "path": "samples/<sample>/configs/xenium_sections.json",
+      "format": "{\"sections\": {<section_id>: {section_id, pixel_size_um, dapi_level0_wh, xenium_dir}}}",
+      "consumed_by": [
+        "scripts/build_xenium_gt.py",
+        "scripts/xenium_marker_annotation.py"
+      ]
+    },
+    {
+      "name": "xenium_annotation",
+      "path": "<XENIUM_ANN>/<sample>-<section>_cell_annotation.csv",
+      "env": "XENIUM_ANN",
+      "format": "per-cell Xenium cell_id and cell type (xenium_marker_annotation.py writes it from marker genes when none is supplied); export_h5ad_annotation.py writes it from an annotated AnnData",
+      "consumed_by": [
+        "scripts/build_xenium_gt.py",
+        "scripts/xenium_tls_frame.py"
+      ]
+    },
+    {
+      "name": "xenium_runs",
+      "path": "<XENIUM_RUNS>/output-XETG*/ (Xenium output bundles with cells.parquet and cell_feature_matrix.h5)",
+      "env": "XENIUM_RUNS",
+      "consumed_by": [
+        "scripts/xenium_tls_frame.py",
+        "scripts/xenium_marker_annotation.py",
+        "scripts/xenium_register.py"
+      ]
+    },
+    {
+      "name": "linkage",
+      "path": "configs/linkage.json",
+      "env": "THREED_LINKAGE",
+      "format": "packaged; grid.resolution_um, grid.canvas_basis_891, tls_linking.accept_link_iff_both",
+      "consumed_by": [
+        "scripts/tls_linker.py"
+      ]
+    },
+    {
+      "name": "page_runtime",
+      "path": "headless Chrome and puppeteer-core",
+      "env": "CHROME, PUPPETEER, NODE, PAGE_HOST, PAGE_PORT",
+      "consumed_by": [
+        "pipeline/page_smoke.sh",
+        "scripts/page_smoke.js"
+      ]
+    }
+  ]
+}

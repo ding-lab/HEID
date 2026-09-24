@@ -1,0 +1,164 @@
+{
+  "schema": "heid.inputs.v1",
+  "branch": "tls/prediction",
+  "root": "${PROJECTS_ROOT}/tls/prediction (TLS_HE_PRED_DATA)",
+  "inputs": [
+    {
+      "name": "aligned_he",
+      "path": "${PROJECTS_ROOT}/align/aligned_he",
+      "produced_by": "align/cell_qc/scripts/publish_aligned_he.py",
+      "files": {
+        "_report/cohort_summary.csv": "cohort, cancer, field, n_cells, keep_frac",
+        "_report/blur_rename_map.tsv": "field, frac_keep",
+        "<cohort>/<cancer>/<field>[-suffix]/micro/<field>_cells_for_training.parquet": "training cells",
+        "<cohort>/<cancer>/<field>[-suffix]/micro/cell_keep/<field>_cells.parquet": "cell_id, x_um, y_um, dx_um, dy_um, keep",
+        "<cohort>/<cancer>/<field>[-suffix]/he_aligned.ome.tif": "registered H&E"
+      },
+      "consumed_by": [
+        "scripts/build_alignment_manifest.py",
+        "scripts/audit_regions.py",
+        "scripts/build_training_data.py"
+      ]
+    },
+    {
+      "name": "bridge_slides",
+      "path": "bridge/configs/slides_5k.tsv",
+      "columns": {
+        "unit_id": "string",
+        "cancer": "string",
+        "field": "string",
+        "patient": "string",
+        "xenium_run_folder": "string",
+        "gen12_sample": "string",
+        "gen12_class": "tls_positive, tls_negative or another value (not a label)",
+        "has_feat_uni2_b": "boolean",
+        "split_key": "string; roster marks duplicate-scan units"
+      },
+      "consumed_by": [
+        "scripts/build_training_data.py",
+        "scripts/build_alignment_manifest.py"
+      ]
+    },
+    {
+      "name": "bridge_per_cell",
+      "path": "bridge/data/molecular_regions/per_cell.parquet",
+      "format": "parquet with one row group per sample",
+      "columns": {
+        "sample": "string",
+        "cell_id_base": "string",
+        "tls_region_halo150": "string, the 150 um TLS region of the molecular reporter",
+        "in_tls_core": "boolean"
+      },
+      "consumed_by": [
+        "scripts/audit_regions.py",
+        "scripts/build_training_data.py"
+      ]
+    },
+    {
+      "name": "bridge_per_tls",
+      "path": "bridge/data/molecular_regions/per_tls.parquet",
+      "columns": {
+        "sample": "string",
+        "cancer": "string",
+        "tls_region": "string",
+        "n_cells_halo150": "integer",
+        "region_area_mm2_halo150": "float",
+        "mature": "boolean",
+        "has_maturity": "boolean"
+      },
+      "consumed_by": [
+        "scripts/audit_regions.py",
+        "scripts/build_training_data.py"
+      ]
+    },
+    {
+      "name": "bridge_sample_to_field",
+      "path": "bridge/data/molecular_regions/sample_to_field.tsv",
+      "columns": {
+        "gen12_sample": "string, unique",
+        "gen12_cancer": "string",
+        "v9_field_base": "string, aligned field name"
+      },
+      "consumed_by": [
+        "scripts/audit_regions.py",
+        "scripts/build_training_data.py"
+      ]
+    },
+    {
+      "name": "ownership_tiles",
+      "path": "bridge/data/duplicate_scan_labels/<unit>_tiles.parquet",
+      "columns": {
+        "x_px": "integer",
+        "y_px": "integer",
+        "field_px": "1206",
+        "keep_frac": "float"
+      },
+      "consumed_by": [
+        "scripts/build_training_data.py"
+      ]
+    },
+    {
+      "name": "tiles",
+      "path": "data/xenium_5k/tiles/<field>/tiles.parquet",
+      "columns": {
+        "x_px": "integer tile centre, level-0 pixels at 0.2125 um",
+        "y_px": "integer"
+      },
+      "consumed_by": [
+        "scripts/train.py",
+        "scripts/hash_inputs.py",
+        "scripts/infer.py --tiles"
+      ]
+    },
+    {
+      "name": "features",
+      "path": "features/<field>/uni2.pt (TLS_FEATURES)",
+      "format": "torch dict with features [N,1536] and tile_index equal to arange(N); 1206 px fields at 603 px stride",
+      "consumed_by": [
+        "scripts/train.py",
+        "scripts/hash_inputs.py",
+        "scripts/infer.py --features"
+      ]
+    },
+    {
+      "name": "cohort_binding",
+      "path": "RELEASE_ROOT/tls/prediction/data/manifests/cohort_binding.json",
+      "supplied_with": "the input bundle",
+      "structure": {
+        "schema": "heid.tls.cohort_binding.v1",
+        "contract_name": "string",
+        "source_files": {
+          "<path under aligned_he>": "sha256"
+        },
+        "gen12_bridge": {
+          "<bridge name>": {
+            "sha256": "hex"
+          }
+        },
+        "expected": "counts compared by --strict"
+      },
+      "consumed_by": [
+        "scripts/cohort_binding.py"
+      ]
+    },
+    {
+      "name": "production_head",
+      "argument": "infer.py --checkpoint",
+      "supplied_with": "the trained weights"
+    }
+  ],
+  "order": [
+    "scripts/build_alignment_manifest.py",
+    "scripts/audit_regions.py",
+    "scripts/build_training_data.py",
+    "scripts/hash_inputs.py",
+    "scripts/validate.py",
+    "scripts/train.py --mode cv",
+    "scripts/evaluate.py",
+    "scripts/train.py --mode full"
+  ],
+  "outputs": {
+    "prepared": "configs/slides_5k.tsv, data/labels/<unit>_tiles.parquet, data/tls_instances.parquet, outputs/results/{alignment_manifest.tsv, region_qc.tsv, input_hashes.tsv, training_data.json, preflight.json}",
+    "inference": "input tile columns plus tls_probability, tls_call, tls_threshold"
+  }
+}

@@ -7,7 +7,6 @@ _RELEASE = Path(__file__).resolve().parents[3]
 import argparse
 import hashlib
 import json
-import os
 import sys
 import time
 from pathlib import Path
@@ -152,12 +151,13 @@ def main() -> None:
     parser.add_argument("--slide", required=True)
     parser.add_argument("--manifest",
                         default=os.path.join(INFERENCE_ROOT, "configs", COHORT, "run_manifest.tsv"))
-    parser.add_argument("--batch", type=int, default=BATCH)
+    parser.add_argument("--batch", type=int, default=BATCH,
+                        help="cell crops per forward pass; the selected setting is 256 and another value changes the bf16 reduction order")
     parser.add_argument("--crop-workers", type=int, default=CROP_WORKERS)
     args = parser.parse_args()
 
     if not torch.cuda.is_available():
-        sys.exit("FATAL: no CUDA. The job landed without a GPU (pyxis not stripped at submit).")
+        sys.exit("FATAL: a CUDA device is required.")
     device = torch.device("cuda")
     log(f"gpu={torch.cuda.get_device_name(0)}")
 
@@ -209,19 +209,13 @@ def main() -> None:
 
 
     if COMPILE and FORCE_CUDNN_ATTENTION:
-        sys.exit("FATAL: torch.compile with a forced cuDNN attention backend produces wrong "
-                 "output (argmax agreement 0.17-0.26, accuracy 0.49 -> 0.13) at no speed "
-                 "benefit. Enable one or neither.")
+        sys.exit("FATAL: enable torch.compile or the forced cuDNN attention backend, not both.")
     if os.environ.get("CELL_COMPILE_MODE", "default") != "default":
-        sys.exit("FATAL: only compile mode 'default' is validated. max-autotune disagrees with "
-                 "the uncompiled model on 16-18% of cells.")
+        sys.exit("FATAL: CELL_COMPILE_MODE must be 'default'.")
     if os.environ.get("CELL_FP8") or os.environ.get("CELL_TOKEN_MERGING"):
-        sys.exit("FATAL: FP8 measured SLOWER than bf16 (2.49 vs 1.73 ms/crop); token merging "
-                 "r=8 costs 4 points of Schwann recall for 1.23x. Neither is available.")
+        sys.exit("FATAL: unset CELL_FP8 and CELL_TOKEN_MERGING.")
     if os.environ.get("CELL_SHARE_TILE_FEATURES"):
-        sys.exit("FATAL: sharing one tile feature map across nearby cells changes the class of "
-                 "37.9% of cells at the grid's typical off-centre distance. Per-cell 224 px "
-                 "forward passes are the contract, not an inefficiency.")
+        sys.exit("FATAL: unset CELL_SHARE_TILE_FEATURES; one 224 px forward pass per cell is required.")
 
     if COMPILE:
 
@@ -314,10 +308,10 @@ def main() -> None:
     meta = {
         "slide": args.slide, "cohort": COHORT, "n_cells": int(n), "n_scored": int(scored.sum()),
         "model": f"Cell cls_sigma3, single fold {FOLD}",
-        "fold_rule": "model card 7: one fold matches the reported metric; "
-                     "the five-model ensemble was never measured",
+        "fold_rule": "single fold0 model",
+        "forward_batch": int(args.batch),
         "heads": str(HEAD_DIR), "adapters": str(ADAPTER_DIR), "head_identity": head_identity,
-        "decision_layer": "not applied; raw model probabilities are reported",
+        "decision_layer": "raw model probabilities",
         "classes": classes, "class_counts": {k: int(v) for k, v in counts.items()},
         "crop": {"px": CROP, "um_per_px": XPX, "stain": "raw RGB, ImageNet normalisation only"},
         "sigma3_polygon": "InstanSeg NUCLEUS contour (training uses Xenium WHOLE-CELL)",
@@ -332,7 +326,7 @@ def main() -> None:
     peak_child = resource.getrusage(resource.RUSAGE_CHILDREN).ru_maxrss / (1024 ** 2)
     log(f"DONE {args.slide}: scored {int(scored.sum()):,}/{n:,} in {meta['seconds']:.0f}s"
         f"  peak memory main process {peak_self:.1f} GB + max child process {peak_child:.1f} GB"
-        f" (lower bound, requested 256 GB)")
+        f" (lower bound)")
     log(counts.to_string())
 
 

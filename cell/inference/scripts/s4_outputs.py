@@ -6,7 +6,6 @@ from pathlib import Path
 _RELEASE = Path(__file__).resolve().parents[3]
 import argparse
 import json
-import os
 import sys
 from pathlib import Path
 
@@ -226,12 +225,12 @@ def calibrate_tau(slides: list[str], project: str) -> dict:
             raise SystemExit(
                 f"FATAL: cached threshold was calibrated on {was} slides, but this group now has {available} available.\n"
                 f"  The group gained more slides, so the old threshold is no longer its quantile.\n"
-                f"  Delete {TAU_FILE} and recalibrate, or set CELL_TAU_PARTIAL_OK=1 to explicitly accept it (its outputs are not deliverable).")
+                f"  Delete {TAU_FILE} and recalibrate, or set CELL_TAU_PARTIAL_OK=1 to explicitly accept it (its outputs are partial).")
         return cached
     if available < len(slides) and not partial_ok:
         raise SystemExit(
             f"FATAL: threshold should be calibrated on {len(slides)} slides, but only {available} have inference results.\n"
-            f"  Wait for this group's inference to finish before calibrating, or set CELL_TAU_PARTIAL_OK=1 to explicitly accept it (its outputs are not deliverable).")
+            f"  Wait for this group's inference to finish before calibrating, or set CELL_TAU_PARTIAL_OK=1 to explicitly accept it (its outputs are partial).")
     if os.environ.get("CELL_TAU_ABS_MODE"):
         tau = float(os.environ.get("CELL_TAU_ABS", TAU_ABS))
         pool_n = 0
@@ -544,7 +543,7 @@ def main() -> None:
     parser.add_argument("--shard", type=int, default=0)
     parser.add_argument("--n-shards", type=int, default=1)
     parser.add_argument("--calibrate-only", action="store_true")
-    parser.add_argument("--project", help="process only this one cancer type (deliverables are organized by cancer type)")
+    parser.add_argument("--project", help="process only this one cancer type (outputs are organized by cancer type)")
     args = parser.parse_args()
 
     table = pd.read_csv(args.manifest, sep="\t").set_index("slide")

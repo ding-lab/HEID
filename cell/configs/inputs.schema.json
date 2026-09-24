@@ -1,0 +1,248 @@
+{
+ "schema": "heid.inputs.v1",
+ "branch": "cell",
+ "root": "${PROJECTS_ROOT}/cell",
+ "inputs": [
+  {
+   "name": "aligned_he",
+   "path": "${PROJECTS_ROOT}/align/aligned_he",
+   "produced_by": "align/cell_qc/scripts/publish_aligned_he.py",
+   "files": {
+    "_report/cohort_summary.csv": "cohort, cancer, field, lowqc, weak_frac, n_cells, n_keep, keep_frac, stage_reached",
+    "_report/blur_rename_map.tsv": "field, frac_keep",
+    "_report/lowqc_samples.csv": "cohort, field",
+    "_report/weak_corr_gate.csv": "section gate table",
+    "<cohort>/<cancer>/<field>[-suffix]/micro/<field>_cells_for_training.parquet": "cell_id, he_px, he_py, x_um, y_um, dx_um, dy_um, block",
+    "<cohort>/<cancer>/<field>[-suffix]/micro/cell_keep/<field>_cells.parquet": "cell_id, keep and the exclusion flags",
+    "<cohort>/<cancer>/<field>[-suffix]/he_aligned.ome.tif": "registered H&E, 0.2125 um/px"
+   },
+   "consumed_by": [
+    "scripts/build_cohort.py",
+    "scripts/build_contract.py",
+    "scripts/contract.py"
+   ]
+  },
+  {
+   "name": "label_atlas",
+   "path": "inputs/celltype/selected_metadata_kmean_k10_reannot.tsv",
+   "format": "tab-separated",
+   "columns": {
+    "cell_id": "string, '<barcode>_<sample>' as written by the atlas",
+    "cell_type_refine": "one of the 17 refine17 labels of configs/taxonomy_coarse11.json"
+   },
+   "consumed_by": [
+    "scripts/scan_labels.py",
+    "scripts/probe_label_alias.py",
+    "scripts/build_contract.py"
+   ]
+  },
+  {
+   "name": "cohort_reference",
+   "path": "inputs/cohort_reference/",
+   "files": {
+    "outputs/manifests/cohort_contract.json": "the reference cohort contract whose shared-H&E groups and patient keys the new contract inherits",
+    "outputs/labels/<sample>.parquet": "reference label tables compared by scan_labels.py",
+    "outputs/wmaps/raw_polys/": "reference nucleus polygons"
+   },
+   "consumed_by": [
+    "scripts/scan_labels.py",
+    "scripts/build_contract.py",
+    "scripts/build_wmaps.py"
+   ]
+  },
+  {
+   "name": "xenium_outputs",
+   "path": "inputs/Xenium/<cohort>/<cancer>/<sample>/",
+   "files": {
+    "nucleus_boundaries.parquet": "cell_id, vertex_x, vertex_y"
+   },
+   "indexed_by": "scripts/stage_training_inputs.py xenium-index",
+   "consumed_by": [
+    "scripts/build_wmaps.py"
+   ]
+  },
+  {
+   "name": "necrosis_annotation_contract",
+   "path": "inputs/necrosis_annotation_contract.json (make_data_contract.py --necrosis-contract)",
+   "fields": {
+    "schema_version": "string",
+    "necrosis_annotation_boundary": {
+     "observed_sample_rule": "text containing 'at least one source-label Necrosis cell'"
+    }
+   },
+   "consumed_by": [
+    "scripts/make_data_contract.py"
+   ]
+  },
+  {
+   "name": "nerve_define_outputs",
+   "path": "RELEASE_ROOT/nerve/define/outputs/<cancer>/data/{<sample>_cells.csv,<sample>_cluster_stats.csv}",
+   "produced_by": "nerve/define/scripts/schwann_clusters.py",
+   "consumed_by": [
+    "scripts/region_membership.py",
+    "scripts/label_exclusion.py"
+   ]
+  },
+  {
+   "name": "backbones",
+   "files": {
+    "${PROJECTS_ROOT}/tools/uni2/pytorch_model.bin": "UNI2-h state dictionary (timm vit_giant_patch14_224, 8 register tokens) loaded strictly",
+    "Hugging Face cache under HF_HOME": "owkin/phikon-v2"
+   },
+   "consumed_by": [
+    "scripts/train_adapter.py",
+    "scripts/extract_features.py",
+    "scripts/build_frozen_cls.py",
+    "scripts/build_tissue_grid.py",
+    "inference/scripts/s2_tissue_grid.py",
+    "inference/scripts/s3_infer.py"
+   ]
+  },
+  {
+   "name": "selection_csv",
+   "path": "inference/data/<CELL_SELECTED>.csv",
+   "produced_by": "inference/scripts/build_cohort.py (TCGA selection) or the user",
+   "columns": {
+    "path": "slide file path",
+    "file": "slide file name",
+    "patient": "string",
+    "project_id": "string",
+    "pni": "annotation or empty",
+    "flag_20x": "boolean",
+    "flag_mpp_far": "boolean",
+    "flag_small": "boolean"
+   },
+   "consumed_by": [
+    "inference/scripts/s0_manifest.py"
+   ]
+  },
+  {
+   "name": "run_manifest",
+   "path": "inference/configs/<CELL_COHORT>/run_manifest.tsv",
+   "produced_by": "inference/scripts/s0_manifest.py",
+   "columns": [
+    "slide",
+    "svs",
+    "native_mpp",
+    "appmag",
+    "level0_W",
+    "level0_H",
+    "patient",
+    "project_id",
+    "pni",
+    "flag_20x",
+    "flag_mpp_far",
+    "flag_small"
+   ],
+   "consumed_by": [
+    "inference/scripts/s1_detect_wmaps.py",
+    "inference/scripts/s2_tissue_grid.py",
+    "inference/scripts/s3_infer.py"
+   ]
+  },
+  {
+   "name": "nucleus_detector",
+   "path": "models/detection/instanseg_lung.pt",
+   "format": "InstanSeg state dictionary loaded strictly; the network fine-tuned by the project, obtained with the trained heads and adapters",
+   "consumed_by": [
+    "inference/scripts/s1_detect_wmaps.py"
+   ]
+  },
+  {
+   "name": "inference_models",
+   "path": "outputs/models/head/cls_sigma3/fold0.pt and outputs/models/adapters/raw_rgb/{uni2,phikon}/fold0.pt",
+   "checked_by": [
+    "configs/head_compatibility.json",
+    "configs/adapter_fingerprints.json"
+   ],
+   "consumed_by": [
+    "inference/scripts/s3_infer.py"
+   ]
+  },
+  {
+   "name": "figure_inputs",
+   "path": "figures/fig_data_cls_sigma3.json",
+   "derived_from": "the per_arm.cls_sigma3 record written by scripts/score_arms.py --out",
+   "fields": {
+    "classes": "the 11 coarse classes in the order of identity_classes in configs/taxonomy_coarse11.json",
+    "confusion11_rows_true_cols_pred": "11 x 11 cell counts, rows true class, columns predicted class (confusion11)",
+    "per_class_f1": "class name to F1 (per_class_f1)",
+    "macro_f1_10": "pooled_macro_f1_10",
+    "macro_f1_11": "pooled_macro_f1_11",
+    "n_cells": "n_cells_scored",
+    "source": "text naming the scoring record"
+   },
+   "companion": "figures/roc_data_cls_sigma3.json, written by figures/build_roc_data.py",
+   "consumed_by": [
+    "figures/plot_figures.py"
+   ]
+  },
+  {
+   "name": "reference_roster",
+   "path": "data/cohort_clean177.csv",
+   "format": "comma-separated, one row per section of the reference cohort",
+   "columns": {
+    "sample": "string",
+    "cohort": "5k",
+    "cancer": "string",
+    "patient": "string",
+    "label_source": "string",
+    "aligned_he_path": "registered H&E path",
+    "n_cells_labeled": "integer",
+    "qc_pass": "boolean",
+    "qc_flags": "string",
+    "fold": "integer",
+    "outer_fold": "integer",
+    "contract_split_id": "hex identity of the outer split"
+   },
+   "consumed_by": [
+    "scripts/build_gray_cropbank.py",
+    "scripts/feature_contract.py",
+    "scripts/train_gray_lora.py"
+   ],
+   "role": "read by the grayscale adapter helper modules, which have no command-line entry point"
+  }
+ ],
+ "staged_by": "scripts/stage_training_inputs.py",
+ "staged_files": [
+  "configs/contract.json",
+  "configs/data_contract.json",
+  "configs/xenium_5k_index.json",
+  "configs/identity_exclusion_manifest.json",
+  "configs/scoring_denominator.json"
+ ],
+ "training_order": [
+  "scripts/build_cohort.py",
+  "scripts/scan_labels.py",
+  "scripts/probe_label_alias.py",
+  "scripts/build_contract.py",
+  "scripts/promote_he_safe_fold.py",
+  "scripts/stage_training_inputs.py contract",
+  "scripts/make_data_contract.py",
+  "scripts/stage_training_inputs.py data-contract",
+  "scripts/stage_training_inputs.py xenium-index",
+  "scripts/build_cropbank.py",
+  "scripts/build_wmaps.py",
+  "scripts/train_adapter.py",
+  "scripts/build_head_selection.py",
+  "scripts/extract_features.py",
+  "scripts/build_frozen_cls.py",
+  "scripts/build_tissue_grid.py",
+  "scripts/stage_training_inputs.py denominator",
+  "scripts/region_membership.py",
+  "scripts/label_exclusion.py",
+  "scripts/stage_training_inputs.py exclusion",
+  "scripts/adapter_fingerprints.py",
+  "scripts/train_fold.py",
+  "scripts/exclusion_dryrun.py",
+  "scripts/verify_fold.py",
+  "scripts/score_arms.py"
+ ],
+ "inference_order": [
+  "inference/scripts/s0_manifest.py",
+  "inference/scripts/s1_detect_wmaps.py",
+  "inference/scripts/s2_tissue_grid.py",
+  "inference/scripts/s3_infer.py",
+  "inference/scripts/s4_outputs.py"
+ ]
+}

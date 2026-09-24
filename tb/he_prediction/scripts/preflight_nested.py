@@ -11,6 +11,7 @@ from typing import Any
 import pandas as pd
 
 import cohort_contract
+from experiment_config import REFERENCE, cohort_size
 
 import audit_input_content as input_audit
 import validate_input_content_receipt as input_receipt_validator
@@ -178,12 +179,13 @@ def validate(
         "contract_payload_sha256",
         label_receipt_path,
     )
+    reference = cohort_size(REFERENCE)
     label_summary = label_receipt.get("summary", {})
     if (
         label_receipt.get("status") != "VALIDATED_COHORT_LABEL_DATASET"
-        or int(label_summary.get("n_samples", -1)) != 177
-        or int(label_summary.get("n_patients", -1)) != 171
-        or int(label_summary.get("n_cancers", -1)) != 9
+        or int(label_summary.get("n_samples", -1)) != reference["n_samples"]
+        or int(label_summary.get("n_patients", -1)) != reference["n_patients"]
+        or int(label_summary.get("n_cancers", -1)) != reference["n_cancers"]
         or int(label_summary.get("cell_side_mismatch", -1)) != 0
         or int(label_summary.get("sdf_over_one_label_pixel_count", -1)) != 0
     ):
@@ -219,13 +221,13 @@ def validate(
         input_validation.get("content_trees", {})
         .get("aligned_he", {})
         .get("n_files")
-        != 177
+        != reference["n_samples"]
         or input_validation.get("content_trees", {})
         .get("dense_labels", {})
         .get("n_files")
-        != 177
+        != reference["n_samples"]
     ):
-        raise ValueError("Dense input-content receipt does not close full177")
+        raise ValueError("Dense input-content receipt does not cover the bound reference cohort")
 
     tile_index_path = root / "data" / "manifests" / "tile_index.parquet"
     tile_receipt_path = (
@@ -235,8 +237,8 @@ def validate(
     scope = tile_receipt.get("scope", {})
     if (
         tile_receipt.get("status") != "VALIDATED_TILE_INDEX"
-        or int(scope.get("n_source_samples", -1)) != 177
-        or int(scope.get("n_patients", -1)) != 171
+        or int(scope.get("n_source_samples", -1)) != reference["n_samples"]
+        or int(scope.get("n_patients", -1)) != reference["n_patients"]
         or not tile_receipt.get("coverage", {}).get(
             "all_valid_pixels_covered", False
         )
@@ -274,9 +276,9 @@ def validate(
     return {
         "status": "R4_NESTED_PREFLIGHT_PASSED",
         "cohort": {
-            "n_samples": 177,
-            "n_patients": 171,
-            "n_cancers": 9,
+            "n_samples": reference["n_samples"],
+            "n_patients": reference["n_patients"],
+            "n_cancers": reference["n_cancers"],
             "n_folds": 5,
         },
         "hashes": {

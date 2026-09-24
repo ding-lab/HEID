@@ -6,7 +6,6 @@ _RELEASE = Path(__file__).resolve().parents[2]
 import argparse
 import json
 import math
-import os
 import sys
 import time
 from pathlib import Path
@@ -28,7 +27,7 @@ LOG_DIR = PC / "shared/logs"
 
 sys.path.insert(0, str(_RELEASE / "cell/scripts"))
 from stain_transforms import get_stain_fn
-STAIN_MODE = os.environ.get("B2_STAIN_MODE", "color")
+STAIN_MODE = os.environ.get("CELL_STAIN_MODE", "color")
 _SFX = "" if STAIN_MODE == "color" else f"_{STAIN_MODE}"
 
 
@@ -178,7 +177,7 @@ def train_fold(fold_idx, device, smoke):
         return
     epochs = int(os.environ.get("SMOKE_EPOCHS", LORA_EPOCHS)) if smoke else LORA_EPOCHS
 
-    print(f"\n{'='*60}\nIter5 Phikon-v2 LoRA — fold {fold_idx} "
+    print(f"\n{'='*60}\nPhikon-v2 LoRA — fold {fold_idx} "
           f"({'SMOKE' if smoke else 'FULL'})\n{'='*60}", flush=True)
     t0 = time.time()
 
@@ -310,7 +309,7 @@ def train_fold(fold_idx, device, smoke):
         "fold": fold_idx,
         "history": history,
         "n_train": int(len(train_labels)), "n_val": int(len(val_labels)),
-        "note": f"Iter5 Phikon-v2 17-class LoRA r16 (Q,V) on UNI2-built per-fold crop banks; stain_mode={STAIN_MODE}.",
+        "note": f"Phikon-v2 17-class LoRA r16 (Q,V) on UNI2-built per-fold crop banks; stain_mode={STAIN_MODE}.",
     }, out_path)
     wall = time.time() - t0
     print(f"\nSaved: {out_path} (best val AUC={best_auc:.3f}); total {wall:.0f}s "
@@ -343,10 +342,6 @@ def main():
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Device: {device} cuda_available={torch.cuda.is_available()} torch={torch.__version__}", flush=True)
     if device.type != "cuda":
-        print("FATAL: no CUDA visible (pyxis?). Abort to avoid CPU-only LoRA train.", flush=True)
+        print("FATAL: a CUDA device is required.", flush=True)
         sys.exit(2)
     train_fold(args.fold, device, args.smoke)
-
-
-if __name__ == "__main__":
-    main()

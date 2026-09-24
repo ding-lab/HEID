@@ -81,7 +81,7 @@ def load_config(path: Path) -> dict[str, Any]:
     if config.get("schema_version") != "a1.gray_adapter_run.v1":
         raise ValueError(f"unsupported gray adapter config schema in {path}")
     if config.get("split_id") != json.loads(SPLIT.read_text()).get("split_id"):
-        raise ValueError("config split_id does not match the canonical clean177 split")
+        raise ValueError("config split_id does not match the canonical reference split")
     if config.get("label_mapping_id") != LABEL_MAPPING_ID:
         raise ValueError("config label_mapping_id differs from the frozen raw-to-refine17 contract")
     if config.get("label_mapping_sha256") != LABEL_MAPPING_SHA256:
@@ -223,7 +223,7 @@ def load_contract(fold: int) -> tuple[pd.DataFrame, dict[str, Any], dict[str, An
     if set(cohort["contract_split_id"].astype(str)) != {str(split["split_id"])}:
         raise ValueError("cohort and split contract IDs differ")
     if cohort["sample"].duplicated().any():
-        raise ValueError("clean177 cohort contains duplicate samples")
+        raise ValueError("reference cohort contains duplicate samples")
     outer = next(
         (item for item in split["outer_folds"] if int(item["outer_fold"]) == int(fold)),
         None,
@@ -234,7 +234,7 @@ def load_contract(fold: int) -> tuple[pd.DataFrame, dict[str, Any], dict[str, An
     test = set(map(str, outer["test_samples"]))
     universe = set(cohort["sample"])
     if train & test or train | test != universe:
-        raise ValueError("outer split is not a disjoint clean177 partition")
+        raise ValueError("outer split is not a disjoint partition of the reference cohort")
     if set(map(str, outer["train_patients"])) & set(map(str, outer["test_patients"])):
         raise ValueError("outer train/test patients overlap")
     selected = cohort[cohort["sample"].isin(train)].copy().sort_values("sample")
@@ -335,7 +335,7 @@ def select_local_indices(
 def validate_single_plane_bank(crops: np.ndarray, labels: np.ndarray) -> None:
     if crops.dtype != np.uint8 or crops.ndim != 3 or tuple(crops.shape[1:]) != (CROP, CROP):
         raise RuntimeError(
-            "legacy/RGB cropbank forbidden: expected uint8 [N,224,224] single-plane crops, "
+            "expected uint8 [N,224,224] single-plane crops, "
             f"got {crops.dtype} {crops.shape}"
         )
     if labels.dtype != np.int64 or labels.ndim != 1 or len(crops) != len(labels):
@@ -664,7 +664,3 @@ def main() -> None:
         args.audit_only,
     )
     print(json.dumps(result, indent=2, sort_keys=True))
-
-
-if __name__ == "__main__":
-    main()

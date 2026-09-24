@@ -23,6 +23,12 @@ def geometry(path):
 
 
 if __name__ == "__main__":
+    import argparse
+    parser = argparse.ArgumentParser(description="Read slide headers and write the run manifest of a new-slide cohort.")
+    parser.add_argument("--source", default=SRC, help="selection CSV; default from CELL_SELECTED")
+    parser.add_argument("--output-dir", default=OUT_DIR, help="default from CELL_COHORT")
+    args = parser.parse_args()
+    SRC, OUT_DIR = args.source, args.output_dir
     os.makedirs(OUT_DIR, exist_ok=True)
     d = pd.read_csv(SRC)
     print(f"cohort table {len(d):,d} rows", flush=True)

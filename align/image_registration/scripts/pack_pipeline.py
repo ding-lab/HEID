@@ -914,7 +914,7 @@ def run_pipeline(he_path, dapi_path, xenium_path, output_dir, crop_mode=False,
     print(f"  Target scale: {target_scale:.4f}")
 
     metadata = {
-        'pipeline': 'gen11_pack',
+        'pipeline': 'standalone_pack',
         'he_path': str(he_path),
         'he_pixel_size': he_px,
         'dapi_pixel_size': dapi_px,
@@ -1235,7 +1235,7 @@ def main():
     parser.add_argument('--dapi', help='Path to DAPI image (auto-detected from --xenium if not set)')
     parser.add_argument('-o', '--output', required=True, help='Output directory')
     parser.add_argument('--crop', action='store_true', help='Crop mode: HE contains multiple samples')
-    parser.add_argument('--bspline', action='store_true', help='Enable B-spline refinement (~0.3um)')
+    parser.add_argument('--bspline', action='store_true', help='Enable the B-spline refinement stage')
     parser.add_argument('--bspline-level', type=int, default=2, help='B-spline downsampling level (default: 2)')
     parser.add_argument('--bspline-workers', type=int, default=32, help='B-spline parallel workers (default: 32)')
     args = parser.parse_args()

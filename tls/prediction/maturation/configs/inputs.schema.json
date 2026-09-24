@@ -1,0 +1,103 @@
+{
+  "schema": "heid.inputs.v1",
+  "branch": "tls/prediction/maturation",
+  "root": "${PROJECTS_ROOT}/tls/maturation (configs/inputs.json)",
+  "inference_order": [
+    "scripts/features.py",
+    "scripts/infer.py"
+  ],
+  "training_order": [
+    "scripts/features.py",
+    "scripts/train.py"
+  ],
+  "inputs": [
+    {
+      "name": "cells",
+      "path": "cells/<sample>.parquet",
+      "columns": {
+        "cell_id": "string",
+        "x_centroid": "float",
+        "y_centroid": "float",
+        "cell_type": "string"
+      }
+    },
+    {
+      "name": "raw_markers",
+      "path": "raw_markers/<sample>.parquet",
+      "columns": {
+        "cell_id": "string",
+        "BCL6": "raw count",
+        "AICDA": "raw count",
+        "MKI67": "raw count"
+      }
+    },
+    {
+      "name": "tls_membership",
+      "path": "tls_membership/5k/<cancer>/<sample>/<sample>_tls.csv",
+      "produced_by": "tls/define/scripts/tls_maturity.py (detector CSV)",
+      "columns": {
+        "cell_id": "string",
+        "tls_region": "TLS-<n> or Outside"
+      }
+    },
+    {
+      "name": "region_grids",
+      "path": "region_grids/<sample>/<sample>_tls_region_grid.npz",
+      "keys": {
+        "tls_grid": "int region IDs, 0 outside",
+        "x_min": "float",
+        "y_min": "float",
+        "res_um": "float"
+      }
+    },
+    {
+      "name": "features",
+      "path": "features/<sample>/uni2.pt",
+      "produced_by": "scripts/features.py",
+      "keys": {
+        "features": "[N,1536]",
+        "region": "[N] positive int",
+        "x_px": "[N]",
+        "y_px": "[N]"
+      }
+    },
+    {
+      "name": "samples",
+      "path": "samples.parquet",
+      "columns": {
+        "sample": "string",
+        "cancer": "string"
+      }
+    },
+    {
+      "name": "groups",
+      "path": "groups.parquet",
+      "columns": {
+        "sample": "string",
+        "cv_group": "string"
+      }
+    },
+    {
+      "name": "uni2_weights",
+      "argument": "features.py --weights",
+      "format": "UNI2-h state dictionary matching vit_giant_patch14_224, embed_dim 1536, 8 register tokens, depth 24"
+    },
+    {
+      "name": "maturation_head",
+      "argument": "infer.py --head",
+      "keys": [
+        "scaler_mean",
+        "scaler_scale",
+        "clf_coef",
+        "clf_intercept",
+        "clf_classes",
+        "ridge_coef",
+        "ridge_intercept"
+      ]
+    }
+  ],
+  "outputs": {
+    "inference": "sample, region_id, n_tiles, p_mature, gc_hat",
+    "training": "maturation_head.npz, region_evaluation.parquet, input_diagnostics.csv, results.json"
+  }
+}

@@ -138,7 +138,7 @@ def assert_scoring_denominator(data: dict, excluded_per_patient: dict[str, int] 
     if empty:
         raise SystemExit(f"patients scored with zero rows: {empty[:5]}")
     if mismatched:
-        raise SystemExit(f"per-patient scorable counts differ from the pre-registration: {mismatched[:5]}")
+        raise SystemExit(f"per-patient scorable counts differ from the registered denominator: {mismatched[:5]}")
     return {
         "denominator_rule": spec["rule"],
         "denominator_field": spec["denominator_field"],

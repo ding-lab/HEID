@@ -7,6 +7,8 @@ import json
 from pathlib import Path
 from typing import Any
 
+from experiment_config import load_experiment
+
 ROOT = Path(__file__).resolve().parents[1]
 ARM = "native_rgb"
 
@@ -23,7 +25,7 @@ CONTROLS = {
 
 
 def canonical_sha256(path: Path) -> str:
-    payload = json.loads(path.read_text(encoding="utf-8"))
+    payload = load_experiment(path)
     text = json.dumps(payload, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
     return hashlib.sha256(text.encode("utf-8")).hexdigest()
 

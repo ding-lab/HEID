@@ -22,7 +22,7 @@ N_TILES = 60
 PROJ = Path(os.environ.get("PROJECTS_ROOT", "/data/heid"))
 QC_ROOT = Path(__file__).resolve().parents[1]
 SIGN_TEST_ROOT = Path(__file__).resolve().parents[1]
-XEN = PROJ / "data/X1000/Xenium/5k"
+XEN = PROJ / "align/xenium/5k"
 ALI = PROJ / "align/registered_he/5k"
 
 
@@ -77,8 +77,8 @@ def main():
     ap.add_argument("--cancer", required=True)
     ap.add_argument("--n-tiles", type=int, default=N_TILES)
     ap.add_argument("--cell-keep-dir",
-                    default=str(QC_ROOT / "outputs/full/cell_keep"))
-    ap.add_argument("--tiles-dir", default=str(QC_ROOT / "outputs/full/offsets"))
+                    default=str(QC_ROOT / "outputs/results/cell_keep"))
+    ap.add_argument("--tiles-dir", default=str(QC_ROOT / "outputs/offsets"))
     ap.add_argument("--aligned-dir", default=None)
     ap.add_argument("--xenium-dir", default=None)
     ap.add_argument("--out", default=str(SIGN_TEST_ROOT / "outputs/validation/sign_test"))

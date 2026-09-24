@@ -186,11 +186,11 @@ def atomic_torch_save(path: Path, value: Any) -> None:
     _atomic_write(path, lambda handle: torch.save(value, handle))
 
 
-def require_gen3_keys(payload: Mapping[str, Any], required: Sequence[str], what: str) -> None:
+def require_keys(payload: Mapping[str, Any], required: Sequence[str], what: str) -> None:
     missing = [key for key in required if key not in payload]
     if missing:
         raise ValueError(
-            f"{what} payload lacks fields the gen3 decoder reads: {missing}"
+            f"{what} payload lacks fields the decoder reads: {missing}"
         )
 
 
@@ -254,11 +254,11 @@ class Taxonomy:
             raise ValueError("taxonomy schema mismatch")
         identities = tuple(value["identity_classes"])
         if identities != IDENTITY_CLASSES:
-            raise ValueError("taxonomy identity_classes must match the fixed v5 order")
+            raise ValueError("taxonomy identity_classes must match the fixed class order")
         lineage_target = value["lineage_auxiliary_target"]
         lineages = tuple(lineage_target["lineage_classes"])
         if lineages != LINEAGE_CLASSES:
-            raise ValueError("taxonomy lineage_classes must match the fixed v5 order")
+            raise ValueError("taxonomy lineage_classes must match the fixed class order")
         identity_to_lineage = dict(lineage_target["identity_to_lineage"])
         for identity in identities:
             if identity_to_lineage.get(identity) not in lineages:
@@ -1169,7 +1169,7 @@ def build_post_merge_prior_repair_selection(
     selection_cap = int(selection_manifest["cap_per_class"])
     if identity_cap > selection_cap or necrosis_cap > selection_cap:
         raise ValueError(
-            f"post-merge caps ({identity_cap}, {necrosis_cap}) exceed a2's per-source cap "
+            f"post-merge caps ({identity_cap}, {necrosis_cap}) exceed the per-source cap "
             f"{selection_cap}; the counterfactual would need rows the selection never cached"
         )
     seed = int(selection_manifest["seed"])
@@ -1542,7 +1542,7 @@ def load_or_build_selection(
             },
             "summary": summary,
     }
-    require_gen3_keys(payload, REQUIRED_SELECTION_KEYS, "selection")
+    require_keys(payload, REQUIRED_SELECTION_KEYS, "selection")
     atomic_torch_save(path, payload)
     return selected, summary, identity, row_set
 
@@ -1808,7 +1808,7 @@ def load_or_build_sample_cache(
         excluded=excluded,
     )
     bundle["cache_provenance"] = expected
-    require_gen3_keys(bundle, REQUIRED_CACHE_KEYS, "selected feature cache")
+    require_keys(bundle, REQUIRED_CACHE_KEYS, "selected feature cache")
     atomic_torch_save(path, bundle)
     return path
 
@@ -2206,7 +2206,7 @@ def _oof_arrays(
         "config_path": np.asarray(config_relative_path),
         "source_path": np.asarray(source_relative_path),
     }
-    require_gen3_keys(arrays, REQUIRED_OOF_KEYS, "held-out")
+    require_keys(arrays, REQUIRED_OOF_KEYS, "held-out")
     return arrays
 
 
@@ -2603,7 +2603,7 @@ def train_fold(
                 "sampling": statistics_summary,
                 "outer_test_selection_use": "none",
         }
-        require_gen3_keys(checkpoint_payload, REQUIRED_CHECKPOINT_KEYS, "checkpoint")
+        require_keys(checkpoint_payload, REQUIRED_CHECKPOINT_KEYS, "checkpoint")
         atomic_torch_save(checkpoint_path, checkpoint_payload)
         print(json.dumps({"event": "epoch_complete", "arm": config["arm"], **epoch_record}), flush=True)
 

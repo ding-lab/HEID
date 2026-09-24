@@ -4,7 +4,6 @@ PROJECTS_ROOT = os.environ.get("PROJECTS_ROOT", "/data/heid")
 import argparse
 import json
 import math
-import os
 import sys
 import time
 from pathlib import Path
@@ -30,7 +29,7 @@ CELL_TABLE_DIR = PC / "data/cell_tables"
 SPLIT_JSON = PC / "data/split_5fold.json"
 LORA_DIR = PC / "shared/lora"
 
-STAIN_MODE = os.environ.get("B2_STAIN_MODE", "color")
+STAIN_MODE = os.environ.get("CELL_STAIN_MODE", "color")
 _SFX = "" if STAIN_MODE == "color" else f"_{STAIN_MODE}"
 OUT_OOF = PC / f"shared/features/lora_cls_oof{_SFX}"
 OUT_MP_OOF = PC / f"shared/features/lora_meanpool_oof{_SFX}"
@@ -38,7 +37,6 @@ OUT_TRAIN = PC / "shared/features/lora_cls_train"
 MANIFEST_DIR = PC / f"shared/features/manifests_lora{_SFX}"
 
 UNI2_PATHS = [
-    Path(PROJECTS_ROOT + "/tools/uni2/pytorch_model.bin"),
     Path(PROJECTS_ROOT + "/tools/uni2/pytorch_model.bin"),
 ]
 
@@ -430,7 +428,3 @@ def main():
 
     (MANIFEST_DIR / f"{sample}_{man['mode']}.json").write_text(json.dumps(man, indent=2))
     print(f"[{sample}] DONE in {time.time()-t0:.0f}s", flush=True)
-
-
-if __name__ == "__main__":
-    main()

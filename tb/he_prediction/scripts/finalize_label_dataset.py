@@ -13,6 +13,8 @@ from typing import Any
 import numpy as np
 import pandas as pd
 
+from experiment_config import load_experiment
+
 
 REQUIRED_ARCHIVE_MEMBERS = {
     "tumor_mask",
@@ -179,10 +181,12 @@ def inspect_archive(source_row: pd.Series) -> dict[str, Any]:
 def finalize(config_path: Path) -> tuple[pd.DataFrame, dict[str, Any]]:
     config_path = config_path.resolve()
     project_root = config_path.parent.parent
-    config = json.loads(config_path.read_text(encoding="utf-8"))
+    config = load_experiment(config_path)
     source_manifest_path = project_root / config["outputs"]["source_manifest"]
     source_contract_path = project_root / config["outputs"]["data_contract"]
     source = pd.read_csv(source_manifest_path)
+    if "n_samples" not in config["cohort"]:
+        raise ValueError("configuration has no cohort binding; stage data/manifests/cohort_binding.json")
     if len(source) != int(config["cohort"]["n_samples"]):
         raise ValueError("source manifest sample count differs from configuration")
 
@@ -292,7 +296,7 @@ def main() -> None:
     args = parse_args()
     config_path = args.config.resolve()
     project_root = config_path.parent.parent
-    config = json.loads(config_path.read_text(encoding="utf-8"))
+    config = load_experiment(config_path)
     labels, contract = finalize(config_path)
     manifest_path = project_root / config["outputs"]["label_manifest"]
     contract_path = project_root / config["outputs"]["label_dataset_contract"]

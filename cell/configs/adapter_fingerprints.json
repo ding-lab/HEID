@@ -1,0 +1,61 @@
+{
+  "accepted_cohort_binding_sha256": [
+    "78252c8ba4552352e10d94ab0e2074704df6a3b3b7a5dde2fe44cc170bcf2c32",
+    "c641fb74c3184919abf884f69ef16e021c48c68224428a83997018639179d230"
+  ],
+  "folds": {
+    "0": {
+      "canonical_fold_key": "fold_he_safe",
+      "n_test_samples": 39,
+      "n_train_samples": 163,
+      "outer_fold": 0,
+      "outer_test_used_for_checkpoint_selection": false,
+      "outer_test_used_for_training": false,
+      "test_sample_sha256": "a8c0cb5cdf044dd9543d9cc42c7217c4e44aa02b561daf715162e7b4f8655d1a",
+      "train_sample_sha256": "33a0c4a9a14bc9446757fa8fb5aece1929e66237069b7055f76f915c3da178ac"
+    },
+    "1": {
+      "canonical_fold_key": "fold_he_safe",
+      "n_test_samples": 39,
+      "n_train_samples": 163,
+      "outer_fold": 1,
+      "outer_test_used_for_checkpoint_selection": false,
+      "outer_test_used_for_training": false,
+      "test_sample_sha256": "b16a1fca80e4b7e443501e98655f808f1e726f48ca94676eafa5841e5b4c185d",
+      "train_sample_sha256": "8563860ae3023a181226eac091b13d14e4faf37040b20239e9b43ec1884e628b"
+    },
+    "2": {
+      "canonical_fold_key": "fold_he_safe",
+      "n_test_samples": 41,
+      "n_train_samples": 161,
+      "outer_fold": 2,
+      "outer_test_used_for_checkpoint_selection": false,
+      "outer_test_used_for_training": false,
+      "test_sample_sha256": "1edfd666b3b561f3e97a238ceed83c4937ace761272bd9ee58274715f599125d",
+      "train_sample_sha256": "be8a8c3976e75e8e46b11f919e50526f905a72575959b017e4f942f739eedfaa"
+    },
+    "3": {
+      "canonical_fold_key": "fold_he_safe",
+      "n_test_samples": 41,
+      "n_train_samples": 161,
+      "outer_fold": 3,
+      "outer_test_used_for_checkpoint_selection": false,
+      "outer_test_used_for_training": false,
+      "test_sample_sha256": "fe0ad9fbdb5d232dbd9259c8d4eea2d61d53a40575abc7738c77d4ab22224b79",
+      "train_sample_sha256": "40766a563092d71010207520256a56004ca9ba789ecfacaf6b1e7abe90350474"
+    },
+    "4": {
+      "canonical_fold_key": "fold_he_safe",
+      "n_test_samples": 42,
+      "n_train_samples": 160,
+      "outer_fold": 4,
+      "outer_test_used_for_checkpoint_selection": false,
+      "outer_test_used_for_training": false,
+      "test_sample_sha256": "15ef7921596e9e1408a7c3187f97e38c1c749665005f2f8054c45fb0ef7a20b0",
+      "train_sample_sha256": "6855675a83d9bea2b556ca6bd011484deed16d11e4641b0564c07e57a0263124"
+    }
+  },
+  "schema": "heid.cell.adapter_fingerprints.v1",
+  "taxonomy_content_sha256": "cb899e6f183a7542d207a1a9eaad99e79a0028d36e2b557978d745efc518b47d",
+  "taxonomy_file": "cell/configs/taxonomy_coarse11.json"
+}

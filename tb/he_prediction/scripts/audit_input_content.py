@@ -7,7 +7,6 @@ PROJECTS_ROOT = os.environ.get("PROJECTS_ROOT", "/data/heid")
 import argparse
 import hashlib
 import json
-import os
 import tempfile
 from pathlib import Path
 from typing import Any, Mapping, Sequence
@@ -15,6 +14,8 @@ from typing import Any, Mapping, Sequence
 import numpy as np
 import pandas as pd
 import tifffile
+
+from experiment_config import REFERENCE, cohort_size
 
 
 SCHEMA = "he_boundary_prediction.v1.r4_input_content.v1"
@@ -317,8 +318,9 @@ def load_sources(
     if not full_path.is_file():
         raise ValueError(f"missing the reference provenance manifest: {full_path}")
     full = pd.read_csv(full_path, keep_default_na=False)
-    if len(full) != 177 or full["sample"].nunique() != 177:
-        raise ValueError("reference provenance manifest is not 177 unique samples")
+    expected = cohort_size(REFERENCE)["n_samples"]
+    if len(full) != expected or full["sample"].nunique() != expected:
+        raise ValueError(f"reference provenance manifest is not {expected} unique samples")
     if canonical_sha256(full.to_dict("records")) != data_contract["manifest"]["records_sha256"]:
         raise ValueError("reference provenance manifest records hash differs")
 

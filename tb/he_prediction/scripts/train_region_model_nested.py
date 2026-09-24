@@ -59,7 +59,7 @@ def atomic_write_once_or_equal(path: Path, payload: Mapping[str, Any]) -> None:
     if path.exists():
         if read_json(path) != materialized:
             raise FileExistsError(
-                f"{path}: existing R4 validation contract differs"
+                f"{path}: existing dense validation contract differs"
             )
         return
     with tempfile.NamedTemporaryFile(
@@ -476,7 +476,7 @@ class StitchedSampleThenPatientAccumulator:
         for batch_index, sample in enumerate(samples):
             sample = str(sample)
             if sample not in self.identities:
-                raise ValueError(f"{sample}: absent from R4 validation dataset")
+                raise ValueError(f"{sample}: absent from the dense validation dataset")
             y0, x0 = (int(value) for value in origins[batch_index])
             height, width = self.valid[sample].shape
             if y0 < 0 or x0 < 0 or y0 >= height or x0 >= width:
@@ -904,7 +904,7 @@ def _recover_prediction_temporaries(arguments: argparse.Namespace) -> None:
         for path in sorted(prediction_root.rglob(".r4tmp-*.npz")):
             if path.is_symlink() or not path.is_file():
                 raise RuntimeError(
-                    f"refusing unsafe R4 temporary recovery target: {path}"
+                    f"refusing unsafe temporary recovery target: {path}"
                 )
             path.unlink()
             removed.append(str(path))

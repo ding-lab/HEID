@@ -1,0 +1,118 @@
+{
+  "schema_version": "he_boundary_prediction.v2.model_candidates.resolution_encoder_screen.v1",
+  "input_contract": {
+    "rgb_shape_yx": [
+      1024,
+      1024
+    ],
+    "rgb_mpp_um": 2.5,
+    "label_shape_yx": [
+      256,
+      256
+    ],
+    "label_mpp_um": 10.0,
+    "output_stride": 4,
+    "normalization": {
+      "mean": [
+        0.5,
+        0.5,
+        0.5
+      ],
+      "std": [
+        0.5,
+        0.5,
+        0.5
+      ]
+    }
+  },
+  "candidates": {
+    "r0_fpn_small": {
+      "architecture": "region_fpn",
+      "widths": [
+        40,
+        80,
+        160,
+        320
+      ],
+      "blocks": [
+        2,
+        2,
+        3,
+        3
+      ],
+      "fpn_width": 80,
+      "multiscale_rgb": true,
+      "role": "from-scratch multiscale baseline at this resolution",
+      "label_size": 256
+    },
+    "pre_convnext_fpn": {
+      "architecture": "pretrained_fpn",
+      "encoder": "convnext_tiny.fb_in22k_ft_in1k",
+      "pretrained": true,
+      "drop_path_rate": 0.1,
+      "fpn_width": 128,
+      "label_size": 256,
+      "encoder_normalization": [
+        0.485,
+        0.456,
+        0.406,
+        0.229,
+        0.224,
+        0.225
+      ],
+      "pipeline_normalization": [
+        0.5,
+        0.5,
+        0.5,
+        0.5,
+        0.5,
+        0.5
+      ],
+      "role": "ImageNet-22k pretrained convolutional encoder with a label-grid feature pyramid"
+    }
+  },
+  "training_runtime": {
+    "tiles_per_patient_train": 16,
+    "tiles_per_patient_validation": 6,
+    "loader_workers": 4,
+    "loader_prefetch_factor": 2,
+    "label_cache_size": 4,
+    "minimum_valid_tissue_fraction": 0.5,
+    "threshold_candidates": [
+      0.05,
+      0.1,
+      0.15,
+      0.2,
+      0.25,
+      0.3,
+      0.35,
+      0.4,
+      0.45,
+      0.5,
+      0.55,
+      0.6,
+      0.65,
+      0.7,
+      0.75,
+      0.8,
+      0.85,
+      0.9,
+      0.95
+    ],
+    "inner_validation_fraction": 0.2,
+    "validation_contract": {
+      "grid": "full_valid_tissue_half_stride_hann",
+      "label_tile_shape_yx": [
+        256,
+        256
+      ],
+      "origins": "dense_origins_stride_128_with_bottom_right_tail_alignment",
+      "blend": "nonzero_hann",
+      "batching": "batch_size_4_flush_at_each_sample_boundary",
+      "coverage": "each_valid_10um_pixel_scored_once_after_stitching",
+      "probability_precision": "tile_sigmoid_float32_then_float32_hann_stitch_then_canvas_float16_roundtrip",
+      "aggregation": "sample_metric_then_mean_within_patient_then_patient_equal",
+      "threshold_tie_break": "closest_to_0.5_then_lower"
+    }
+  }
+}

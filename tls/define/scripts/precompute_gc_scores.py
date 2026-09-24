@@ -66,26 +66,21 @@ def main(sample):
         method = "zsum_lt2genes"
         score = zsum_score(X, [gidx[g] for g in present]) if present else np.zeros(n)
     else:
-        try:
-            import anndata as ad, decoupler as dc
-            adata = ad.AnnData(X=X.tocsr())
-            adata.var_names = genes
-            w = [GC_WEIGHTS[GC_GENES.index(g)] for g in present]
-            net = pd.DataFrame({"source": "GC", "target": present, "weight": w})
-            net = net[net["weight"] != 0]
+        import anndata as ad, decoupler as dc
+        adata = ad.AnnData(X=X.tocsr())
+        adata.var_names = genes
+        w = [GC_WEIGHTS[GC_GENES.index(g)] for g in present]
+        net = pd.DataFrame({"source": "GC", "target": present, "weight": w})
+        net = net[net["weight"] != 0]
 
-            dc.mt.ulm(adata, net, tmin=max(1, len(net)), verbose=False)
-            obsm = adata.obsm
-            key = "score_ulm" if "score_ulm" in obsm else [k for k in obsm if "ulm" in k.lower()][0]
-            sdf = obsm[key]
-            score = (sdf["GC"].values if hasattr(sdf, "columns") else np.asarray(sdf).ravel()).astype(np.float64)
+        dc.mt.ulm(adata, net, tmin=max(1, len(net)), verbose=False)
+        obsm = adata.obsm
+        key = "score_ulm" if "score_ulm" in obsm else [k for k in obsm if "ulm" in k.lower()][0]
+        sdf = obsm[key]
+        score = (sdf["GC"].values if hasattr(sdf, "columns") else np.asarray(sdf).ravel()).astype(np.float64)
 
-            if not np.isfinite(score).any() or np.nanstd(score) == 0:
-                raise ValueError("degenerate ULM score")
-        except Exception as ex:
-            method = "zsum_fallback"
-            print(f"  ULM failed/degenerate ({ex}); falling back to zsum", flush=True)
-            score = zsum_score(X, [gidx[g] for g in present])
+        if not np.isfinite(score).any() or np.nanstd(score) == 0:
+            raise ValueError(f"{sample}: degenerate ULM GC score")
 
     is_b = (ct == "B_cell")
     gc = np.where(is_b, score, np.nan)
@@ -102,4 +97,7 @@ def main(sample):
 
 
 if __name__ == "__main__":
-    main(sys.argv[1])
+    import argparse
+    parser = argparse.ArgumentParser(description="Per-cell GC program score (decoupler ULM) for one section.")
+    parser.add_argument("sample")
+    main(parser.parse_args().sample)

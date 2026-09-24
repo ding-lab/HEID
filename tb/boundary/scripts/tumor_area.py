@@ -2,6 +2,7 @@ from __future__ import annotations
 import os
 PROJECTS_ROOT = os.environ.get("PROJECTS_ROOT", "/data/heid")
 
+import argparse
 import sys
 from pathlib import Path
 
@@ -16,10 +17,10 @@ from scipy.ndimage import (
 )
 
 REPO_ROOT = Path(PROJECTS_ROOT) / "tb" / "boundary"
-DATA_X1000 = REPO_ROOT / "inputs"
-DATA_ROOT = DATA_X1000 / "xenium"
-CELLATLAS_477 = DATA_X1000 / "cell_atlas" / "477" / "allsolidtumor.cells.csv"
-CELLATLAS_5K = DATA_X1000 / "cell_atlas" / "5k" / "allsolidtumor5k.cells.csv"
+INPUTS_ROOT = REPO_ROOT / "inputs"
+DATA_ROOT = INPUTS_ROOT / "xenium"
+CELLATLAS_477 = INPUTS_ROOT / "cell_atlas" / "477" / "allsolidtumor.cells.csv"
+CELLATLAS_5K = INPUTS_ROOT / "cell_atlas" / "5k" / "allsolidtumor5k.cells.csv"
 K10_CACHE = REPO_ROOT / "cache" / "celltype_k10"
 
 NORMAL_MAP = {
@@ -192,11 +193,14 @@ def sample_area(dataset: str, cancer_type: str, sample: str) -> dict:
 
 
 def main() -> None:
-    if len(sys.argv) != 2 or sys.argv[1] not in NORMAL_MAP:
-        sys.exit(f"usage: tumor_area.py <cancer_type in {sorted(NORMAL_MAP)}>")
-    cancer_type = sys.argv[1]
+    parser = argparse.ArgumentParser(description="Tumor area per section for one cancer type.")
+    parser.add_argument("cancer_type", choices=sorted(NORMAL_MAP))
+    parser.add_argument("--samples", type=Path, default=SAMPLE_LIST,
+                        help="tab-separated roster without header: dataset, cancer_type, sample")
+    args = parser.parse_args()
+    cancer_type = args.cancer_type
 
-    samples = pd.read_csv(SAMPLE_LIST, sep="\t", header=None,
+    samples = pd.read_csv(args.samples, sep="\t", header=None,
                           names=["dataset", "cancer_type", "sample"], dtype=str)
     samples = samples[samples.cancer_type == cancer_type].reset_index(drop=True)
     print(f"{cancer_type}: {len(samples)} samples", flush=True)

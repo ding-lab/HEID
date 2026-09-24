@@ -4,7 +4,6 @@ import os
 PROJECTS_ROOT = os.environ.get("PROJECTS_ROOT", "/data/heid")
 
 import argparse
-import os
 from dataclasses import dataclass, asdict
 from pathlib import Path
 

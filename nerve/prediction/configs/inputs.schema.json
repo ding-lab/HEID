@@ -1,0 +1,93 @@
+{
+  "schema": "heid.inputs.v1",
+  "branch": "nerve/prediction",
+  "order": [
+    "scripts/region_operator.py run_operator and membership over a selected-cell table",
+    "scripts/operator_runs.py --arm CELL",
+    "scripts/transferred_operating_point.py"
+  ],
+  "inputs": [
+    {
+      "name": "frame",
+      "argument": "--frame",
+      "default_path": "data/evaluation/frame.json",
+      "format": "JSON",
+      "fields": {
+        "status": "HEADLINE",
+        "slides": "list of {sample, group, cancer, panel 5k|477, fold}",
+        "allowlist_sha256": "hex",
+        "probability_source": {
+          "experiment_id": "experiment_id carried by every Cell OOF array used",
+          "arm": "string",
+          "fold0_checkpoint_sha256": "hex"
+        }
+      },
+      "consumed_by": [
+        "scripts/operator_runs.py",
+        "scripts/transferred_operating_point.py"
+      ]
+    },
+    {
+      "name": "folds",
+      "argument": "--folds",
+      "default_path": "data/folds_he_safe.json",
+      "format": "JSON",
+      "fields": {
+        "per_sample": "list of {sample, fold_he_safe}",
+        "assignment_sha256": "hex identity of the assignment"
+      },
+      "consumed_by": [
+        "scripts/transferred_operating_point.py"
+      ]
+    },
+    {
+      "name": "replay",
+      "argument": "--replay",
+      "produced_by": "scripts/operator_runs.py --arm CELL",
+      "consumed_by": [
+        "scripts/transferred_operating_point.py"
+      ]
+    },
+    {
+      "name": "gold",
+      "path": "<gold dir>/<sample>.parquet",
+      "argument": "--gold-dir",
+      "columns": {
+        "cell_id": "string",
+        "x_um": "float",
+        "y_um": "float",
+        "gold_cluster_id": "region identifier or null",
+        "ignore_region_id": "region identifier or null",
+        "is_schwann": "boolean"
+      }
+    },
+    {
+      "name": "masks",
+      "path": "<masks dir>/<frame group>/<sample>_mask.npz",
+      "argument": "--masks-dir",
+      "keys": {
+        "x_min_um": "float",
+        "y_min_um": "float",
+        "nx": "int",
+        "ny": "int"
+      }
+    },
+    {
+      "name": "cell_oof",
+      "path": "<cell oof dir>/fold*/<sample>.npz",
+      "argument": "--cell-oof",
+      "produced_by": "cell/scripts/train_fold.py (arm_cls_sigma3_all_schwann.json)",
+      "keys": {
+        "cell": "cell identifiers",
+        "prob": "[N, classes] probabilities",
+        "identity_classes": "class names including Schwann",
+        "fold": "int",
+        "experiment_id": "must equal the frame's probability_source experiment_id"
+      }
+    }
+  ],
+  "outputs": {
+    "operator": "<PROJECTS_ROOT>/nerve/prediction/outputs/operator_<arm>.json or --output",
+    "transfer": "<PROJECTS_ROOT>/nerve/prediction/outputs/transferred_operating_point.json or --output"
+  }
+}

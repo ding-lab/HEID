@@ -299,7 +299,7 @@ def load_cells(sample: str) -> pd.DataFrame:
     labels = pd.read_parquet(labels_path(sample))
     labels["cell_id"] = labels["cell_id"].astype(str)
     if labels["cell_id"].duplicated().any():
-        raise RuntimeError(f"{sample}: duplicate cell_id in labels_v8")
+        raise RuntimeError(f"{sample}: duplicate cell_id in the label table")
     cells = table.merge(labels, on="cell_id", how="inner")
     if len(cells) != int(rec["n_keep_cells_own"]):
         raise RuntimeError(

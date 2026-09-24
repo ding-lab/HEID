@@ -94,7 +94,7 @@ def load_rgb_cropbank(
     mapping_source = manifest.get("label_mapping_source")
     if mapping_source != contract_manifest_record():
         raise RuntimeError(
-            "legacy RGB cropbank forbidden: label_mapping_source is absent or differs"
+            "RGB cropbank label_mapping_source is absent or differs"
         )
     for key in ("crops", "labels", "samples", "cells"):
         record = manifest.get("outputs", {}).get(key, {})
@@ -162,7 +162,7 @@ def load_native_rgb_model(
 ) -> tuple[nn.Module, Any, list[nn.Module], dict[str, Any]]:
     validate_formal_preprocessing_interface(PREPROCESSING_ID, INTERFACE_ID)
     source = SHARED_SCRIPTS / ("train_lora_pc.py" if backbone == "uni2" else "train_lora_phikon.py")
-    inherited = _load_module(f"a1_rgb_lora_{backbone}", source)
+    inherited = _load_module(f"rgb_lora_{backbone}", source)
     base_provenance = resolve_base_model_sources(backbone, inherited)
     model = inherited.load_uni2(device) if backbone == "uni2" else inherited.load_phikon(device)
     if backbone == "uni2":
@@ -200,7 +200,7 @@ def checkpoint_manifest_path(checkpoint: Path) -> Path:
 def validate_rgb_adapter_contract(checkpoint: dict[str, Any], expected: dict[str, Any]) -> None:
     contract = checkpoint.get("a1_contract")
     if not isinstance(contract, dict):
-        raise RuntimeError("legacy adapter forbidden: checkpoint has no a1_contract")
+        raise RuntimeError("checkpoint has no a1_contract")
     mismatch = {
         key: {"expected": value, "observed": contract.get(key)}
         for key, value in expected.items()
@@ -295,7 +295,7 @@ def train(
     adapter_root: Path | None = None,
 ) -> dict[str, Any]:
     if not torch.cuda.is_available():
-        raise RuntimeError("CUDA is not visible; refusing login-node/CPU RGB LoRA training")
+        raise RuntimeError("CUDA is not visible; a CUDA device is required")
     config = load_config(config_path)
     split = json.loads(SPLIT.read_text())
     crops, labels, samples, _cells, bank_manifest, bank_manifest_sha = load_rgb_cropbank(
@@ -320,9 +320,9 @@ def train(
     if run_kind == "diagnostic_smoke":
         scratch = (A1 / "scratch").resolve()
         if not cropbank_root.resolve().is_relative_to(scratch):
-            raise ValueError("diagnostic RGB cropbank root must be below a1/scratch")
+            raise ValueError("diagnostic RGB cropbank root must be below the diagnostic scratch root")
         if adapter_root is None or not adapter_root.resolve().is_relative_to(scratch):
-            raise ValueError("diagnostic RGB adapter root must be below a1/scratch")
+            raise ValueError("diagnostic RGB adapter root must be below the diagnostic scratch root")
     checkpoint = checkpoint_path(backbone, fold, adapter_root)
     manifest_path = checkpoint_manifest_path(checkpoint)
     present = checkpoint.exists(), manifest_path.exists()
@@ -502,7 +502,3 @@ def main() -> None:
             sort_keys=True,
         )
     )
-
-
-if __name__ == "__main__":
-    main()

@@ -1,7 +1,5 @@
 import paths as P
 import os
-PROJECTS_ROOT = os.environ.get("PROJECTS_ROOT", "/data/heid")
-import os
 import sys
 
 import numpy as np

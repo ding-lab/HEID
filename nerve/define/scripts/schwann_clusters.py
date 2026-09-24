@@ -183,7 +183,7 @@ def refine_components(lb, n_comps, density, thresh, s_iy, s_ix):
 MAX_MEDIAN_NN_UM = 30.0
 
 
-TUMOR_LEGACY_RADIUS = 50
+TUMOR_STATUS_RADIUS = 50
 PROX_BANDS_UM = [27, 100, 1000]
 
 
@@ -291,7 +291,7 @@ STAT_COLS = ["cluster_id", "status", "shape_class", "confidence", "n_schwann",
              "minor_axis_um", "major_axis_um", "solidity", "eccentricity",
              "core_frac", "median_nn_um", "n_sox10", "n_ngfr", "passA", "passB", "passed",
              "reject_reason", "n_tumor_inside", "n_tumor_le27", "n_tumor_le100",
-             "n_tumor_le1000", "n_tumor_le50"]
+             "n_tumor_le1000", "n_tumor_le50_legacy"]
 
 
 def _layout_labels(half_sizes, pref, anchors, rads, xlim, ylim, iters=600):
@@ -728,7 +728,7 @@ def main() -> None:
             ~mask_all, sampling=RESOLUTION, return_indices=True)
         for c in clusters:
             c.update(n_tumor_inside=0, n_tumor_le27=0, n_tumor_le100=0,
-                     n_tumor_le1000=0, n_tumor_le50=0)
+                     n_tumor_le1000=0, n_tumor_le50_legacy=0)
         for k in range(len(t_ix)):
             yy, xx = t_iy[k], t_ix[k]
             if mask_all[yy, xx]:
@@ -748,17 +748,17 @@ def main() -> None:
                 c["n_tumor_le100"] += 1
             if dist <= PROX_BANDS_UM[2]:
                 c["n_tumor_le1000"] += 1
-            if dist <= TUMOR_LEGACY_RADIUS:
-                c["n_tumor_le50"] += 1
+            if dist <= TUMOR_STATUS_RADIUS:
+                c["n_tumor_le50_legacy"] += 1
     else:
         for c in clusters:
             c.update(n_tumor_inside=0, n_tumor_le27=0, n_tumor_le100=0,
-                     n_tumor_le1000=0, n_tumor_le50=0)
+                     n_tumor_le1000=0, n_tumor_le50_legacy=0)
     for c in clusters:
-        c["status"] = "Tumor+" if c["n_tumor_le50"] > 0 else "Tumor-"
+        c["status"] = "Tumor+" if c["n_tumor_le50_legacy"] > 0 else "Tumor-"
     for c in scattered:
         for kk in ["n_tumor_inside", "n_tumor_le27", "n_tumor_le100", "n_tumor_le1000",
-                   "n_tumor_le50"]:
+                   "n_tumor_le50_legacy"]:
             c[kk] = 0
         c["status"] = "Scattered"
 

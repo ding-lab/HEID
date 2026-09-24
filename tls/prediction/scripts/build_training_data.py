@@ -15,6 +15,8 @@ import pyarrow.parquet as pq
 from scipy import ndimage as ndi
 from skimage.morphology import disk
 
+from cohort_binding import load_contract
+
 
 MODULE_ROOT = Path(__file__).resolve().parents[1]
 HE_PRED = Path(os.environ.get("TLS_HE_PRED_DATA", str(Path(os.environ.get("PROJECTS_ROOT", "/data/heid")) / "tls/prediction")))
@@ -115,7 +117,7 @@ def read_sample(
 
 
 def main() -> None:
-    config = json.loads(CONFIG.read_text())
+    config = load_contract(CONFIG)
     bridge = {
         key: (MODULE_ROOT / item["path"]).resolve()
         for key, item in config["gen12_bridge"].items()

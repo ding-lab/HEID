@@ -13,9 +13,7 @@ PC = Path(PROJECTS_ROOT + "/cell")
 COHORT_REFERENCE_ROOT = PC / "inputs/cohort_reference"
 RAW_POLYGONS = COHORT_REFERENCE_ROOT / "outputs/wmaps/raw_polys"
 COHORT_REFERENCE_LABELS = COHORT_REFERENCE_ROOT / "outputs/labels"
-ALIGNED_INDEX = Path(__file__).resolve().parents[1] / "data/aligned_he_index.json"
 CELL_TABLES = PC / "data/cell_tables"
-COHORT = Path(__file__).resolve().parents[1] / "data/cohort_clean177.csv"
 
 PX_UM = 0.2125
 CROP = 224

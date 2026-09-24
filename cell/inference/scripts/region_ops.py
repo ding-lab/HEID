@@ -1,8 +1,6 @@
 import os
-PROJECTS_ROOT = os.environ.get("PROJECTS_ROOT", "/data/heid")
 from pathlib import Path
 _RELEASE = Path(__file__).resolve().parents[3]
-import os
 import sys
 
 import numpy as np

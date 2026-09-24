@@ -1,0 +1,100 @@
+{
+  "schema": "heid.inputs.v1",
+  "branch": "align",
+  "order": [
+    "image_registration/scripts/align_xenium_to_he.py",
+    "image_registration/scripts/qc_and_rescue.py",
+    "image_registration/scripts/apply_he_alignment.py (apply_codex_alignment.py for CODEX)",
+    "image_registration/scripts/refine_he_per_tissue.py (refine_codex_per_tissue.py for CODEX)",
+    "cell_qc/scripts/estimate_alignment_offset.py",
+    "cell_qc/scripts/04_per_block_offsets.py",
+    "cell_qc/scripts/06_white_cell_filter.py",
+    "cell_qc/scripts/09_blur_cell_filter.py",
+    "cell_qc/scripts/12_cell_keep_table.py",
+    "cell_qc/scripts/publish_aligned_he.py field",
+    "cell_qc/scripts/11_weak_corr_gate.py",
+    "cell_qc/scripts/publish_aligned_he.py mark-blur",
+    "cell_qc/scripts/publish_aligned_he.py report"
+  ],
+  "inputs": [
+    {
+      "name": "xenium_output",
+      "path": "<xenium dir>/, default ${PROJECTS_ROOT}/align/xenium/<panel>/<cancer>/<field>/",
+      "files": {
+        "nucleus_boundaries.parquet": {
+          "cell_id": "string",
+          "vertex_x": "float, micrometres",
+          "vertex_y": "float, micrometres"
+        },
+        "morphology_focus/morphology_focus_0000.ome.tif": "DAPI image; morphology_focus.ome.tif or morphology.ome.tif are accepted when the focus directory is absent"
+      },
+      "consumed_by": [
+        "image_registration/scripts/align_xenium_to_he.py",
+        "image_registration/scripts/detect_xenium_mask.py",
+        "cell_qc/scripts/estimate_alignment_offset.py",
+        "cell_qc/scripts/06_white_cell_filter.py",
+        "cell_qc/scripts/09_blur_cell_filter.py"
+      ]
+    },
+    {
+      "name": "he_slide",
+      "path": "<he image>",
+      "format": "RGB whole-slide OME-TIFF or QPTIFF with physical pixel size metadata",
+      "consumed_by": [
+        "image_registration/scripts/align_xenium_to_he.py",
+        "image_registration/scripts/apply_he_alignment.py",
+        "image_registration/scripts/refine_he_per_tissue.py"
+      ]
+    },
+    {
+      "name": "codex_image",
+      "path": "<codex qptiff>",
+      "format": "multichannel QPTIFF; channel 0 is DAPI",
+      "optional": true,
+      "consumed_by": [
+        "image_registration/scripts/align_xenium_to_codex.py",
+        "image_registration/scripts/apply_codex_alignment.py",
+        "image_registration/scripts/refine_codex_per_tissue.py"
+      ]
+    },
+    {
+      "name": "registered_he",
+      "path": "${PROJECTS_ROOT}/align/registered_he/<cohort>/<cancer>/<field>/he_aligned.ome.tif",
+      "produced_by": "image_registration/scripts/refine_he_per_tissue.py",
+      "consumed_by": [
+        "cell_qc/scripts/estimate_alignment_offset.py",
+        "cell_qc/scripts/publish_aligned_he.py"
+      ]
+    },
+    {
+      "name": "lowqc_list",
+      "path": "<lowqc.tsv>",
+      "format": "tab-separated with header",
+      "columns": {
+        "cohort": "string",
+        "cancer": "string",
+        "field": "string, section name without suffix",
+        "reason": "string"
+      },
+      "optional": true,
+      "consumed_by": [
+        "cell_qc/scripts/publish_aligned_he.py report --lowqc-list"
+      ]
+    }
+  ],
+  "outputs": {
+    "published_tree": "${PROJECTS_ROOT}/align/aligned_he/<cohort>/<cancer>/<field>[-weak|-blur]/{he_aligned.ome.tif, micro/<field>_cells_for_training.parquet, micro/cell_keep/<field>_cells.parquet, micro/cell_keep/<field>.json}",
+    "cohort_tables": "${PROJECTS_ROOT}/align/aligned_he/_report/{cohort_summary.csv, lowqc_samples.csv, blur_rename_map.tsv, weak_corr_gate.csv}",
+    "training_table_columns": [
+      "cell_id",
+      "he_px",
+      "he_py",
+      "x_um",
+      "y_um",
+      "dx_um",
+      "dy_um",
+      "block"
+    ],
+    "canvas_um_per_px": 0.2125
+  }
+}

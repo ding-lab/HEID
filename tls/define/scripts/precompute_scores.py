@@ -36,12 +36,6 @@ def read_block(f, r0, r1, n_genes):
     return X, bc, ct
 
 
-def zsum_score(X, gene_idx):
-    sub = np.asarray(X[:, gene_idx].todense(), dtype=np.float64)
-    mu = sub.mean(0); sd = sub.std(0); sd[sd == 0] = 1.0
-    return ((sub - mu) / sd).mean(1)
-
-
 def main(sample):
     idx = pd.read_csv(IDX, sep="\t")
     rows = idx[idx["sample"] == sample]
@@ -66,26 +60,19 @@ def main(sample):
 
     method = "ulm_pertype"
     src_scores = {}
-    try:
-        import anndata as ad, decoupler as dc
-        adata = ad.AnnData(X=X.tocsr()); adata.var_names = genes
-        net = pd.concat([pd.DataFrame({"source": grp, "target": present[grp], "weight": 1.0})
-                         for grp in GENESETS if present[grp]], ignore_index=True)
-        tmin = min(len(present[grp]) for grp in GENESETS if present[grp])
-        dc.mt.ulm(adata, net, tmin=max(1, tmin), verbose=False)
-        key = "score_ulm" if "score_ulm" in adata.obsm else [k for k in adata.obsm if "ulm" in k.lower()][0]
-        sdf = adata.obsm[key]
-        for grp in GENESETS:
-            if present[grp] and hasattr(sdf, "columns") and grp in sdf.columns:
-                src_scores[grp] = np.asarray(sdf[grp].values, dtype=np.float64)
-        if not src_scores:
-            raise ValueError("no ULM source columns")
-    except Exception as ex:
-        method = "zsum_pertype_fallback"
-        print(f"  ULM failed ({ex}); per-group zsum fallback", flush=True)
-        for grp in GENESETS:
-            if present[grp]:
-                src_scores[grp] = zsum_score(X, [gidx[g] for g in present[grp]])
+    import anndata as ad, decoupler as dc
+    adata = ad.AnnData(X=X.tocsr()); adata.var_names = genes
+    net = pd.concat([pd.DataFrame({"source": grp, "target": present[grp], "weight": 1.0})
+                     for grp in GENESETS if present[grp]], ignore_index=True)
+    tmin = min(len(present[grp]) for grp in GENESETS if present[grp])
+    dc.mt.ulm(adata, net, tmin=max(1, tmin), verbose=False)
+    key = "score_ulm" if "score_ulm" in adata.obsm else [k for k in adata.obsm if "ulm" in k.lower()][0]
+    sdf = adata.obsm[key]
+    for grp in GENESETS:
+        if present[grp] and hasattr(sdf, "columns") and grp in sdf.columns:
+            src_scores[grp] = np.asarray(sdf[grp].values, dtype=np.float64)
+    if not src_scores:
+        raise ValueError(f"{sample}: no ULM source columns")
 
 
     out = pd.DataFrame({"cell_id": bcs, "cell_type": ct})
@@ -100,4 +87,7 @@ def main(sample):
 
 
 if __name__ == "__main__":
-    main(sys.argv[1])
+    import argparse
+    parser = argparse.ArgumentParser(description="Per-cell B, T and DC program scores (decoupler ULM) for one section.")
+    parser.add_argument("sample")
+    main(parser.parse_args().sample)

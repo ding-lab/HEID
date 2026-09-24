@@ -214,9 +214,9 @@ def main():
     ap.add_argument('--tile-size', type=int, default=512)
     ap.add_argument('--maxworkers', type=int, default=8)
     ap.add_argument('--codex-native', action='store_true',
-                     help='Keep CODEX-native pixel grid instead of upsampling '
-                          'to Xenium pixel grid (the older layout — needs '
-                          'Xenium Explorer alignment CSV).')
+                     help='Keep the CODEX-native pixel grid instead of upsampling '
+                          'to the Xenium pixel grid; requires a Xenium Explorer '
+                          'alignment CSV.')
     args = ap.parse_args()
     kwargs = dict(out_path=args.out, tmp_dir=args.tmp_dir,
                   compression=args.compression, tile_size=args.tile_size,

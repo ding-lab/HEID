@@ -770,8 +770,8 @@ def main():
     ap.add_argument('--silhouette-mode', default='min',
                      choices=['min', 'avg', 'forward', 'reverse'],
                      help='Bidirectional silhouette combine: min (both must '
-                          'be high — default), avg (mean), forward (legacy '
-                          'cov-only), reverse (inverse-warp HE → Xen IoU only)')
+                          'be high — default), avg (mean), forward (coverage '
+                          'only), reverse (inverse-warp HE → Xen IoU only)')
     args = ap.parse_args()
     global _SILHOUETTE_MODE
     _SILHOUETTE_MODE = args.silhouette_mode

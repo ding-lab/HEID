@@ -8,7 +8,6 @@ _RELEASE = Path(__file__).resolve().parents[2]
 
 import argparse
 import json
-import os
 import sys
 import time
 from pathlib import Path
@@ -50,7 +49,6 @@ def load_uni2_frozen(device):
     from timm.layers import SwiGLUPacked
 
     paths = [
-        Path(PROJECTS_ROOT + "/tools/uni2/pytorch_model.bin"),
         Path(PROJECTS_ROOT + "/tools/uni2/pytorch_model.bin"),
     ]
     weights = next((p for p in paths if p.exists()), None)

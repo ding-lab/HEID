@@ -371,36 +371,26 @@ def main():
     ap.add_argument('--xenium', default=None,
                      help='Xenium dir override (else from json)')
     ap.add_argument('--search-um', type=float, default=150.0,
-                     help='Per-CC translation search radius µm (default 150). '
-                          'Empirically: HE↔Xenium global rigid is already good '
-                          'enough that the true per-CC residual is ≤ ~100 µm. '
-                          'Wider bounds let Powell find spurious local optima '
-                          'at large translations (observed on S3).')
+                     help='Per-CC translation search radius µm (default 150).')
     ap.add_argument('--max-rot-deg', type=float, default=1.0,
                      help='Per-CC rotation bound deg (default 1)')
     ap.add_argument('--scale-band', type=float, default=0.015,
                      help='Per-CC scale bound around 1.0 (default 0.015 = ±1.5 %%)')
     ap.add_argument('--low-ncc-threshold', type=float, default=0.50,
-                     help='If chip identity NCC score < this, switch that CC '
-                          'to silhouette-IoU-only objective (default 0.50). '
-                          'Cross-modal pixel correlation is unreliable below '
-                          '~0.5 — silhouette IoU stays robust because tissue '
-                          'shape is the same physical object in both modalities.')
+                     help='Switch a CC to the silhouette-IoU objective when its '
+                          'identity local score (NCC + 0.5·coverage, minus the '
+                          'scale penalty) is below this (default 0.50).')
     ap.add_argument('--min-improve', type=float, default=0.03,
                      help='Require best_score − identity_score > this to '
-                          'accept the per-CC refinement (else fall back to '
-                          'identity). Cleaned chips (background masked to 0 '
-                          'in build_cc_context) make the cross-modal NCC '
-                          'noise floor much lower, so a modest threshold '
-                          'suffices.')
+                          'accept the per-CC refinement; otherwise the '
+                          'identity transform is kept (default 0.03).')
     ap.add_argument('--margin-xen-um', type=float, default=300.0,
                      help='xen chip margin around CC bbox (default 300 µm)')
     ap.add_argument('--margin-he-px', type=int, default=128,
                      help='HE subcrop margin px (default 128)')
     ap.add_argument('--work-size', type=int, default=2400,
                      help='Per-CC chip long-axis px for Powell optimisation '
-                          '(default 2400 — 2× higher than initial 1200; '
-                          '4× finer per-pixel precision in chip-coord space).')
+                          '(default 2400).')
     ap.add_argument('--overlay-max', type=int, default=2400)
     args = ap.parse_args()
 

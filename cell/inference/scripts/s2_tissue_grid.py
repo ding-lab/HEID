@@ -6,7 +6,6 @@ from pathlib import Path
 _RELEASE = Path(__file__).resolve().parents[3]
 import argparse
 import json
-import os
 import sys
 import time
 from pathlib import Path
@@ -214,7 +213,7 @@ def main() -> None:
 
 
         if not torch.cuda.is_available():
-            sys.exit("FATAL: no CUDA. The job landed without a GPU (pyxis not stripped at submit).")
+            sys.exit("FATAL: a CUDA device is required.")
         log(f"gpu={torch.cuda.get_device_name(0)}")
     else:
         threads = int(os.environ.get("SLURM_CPUS_PER_TASK", "16"))

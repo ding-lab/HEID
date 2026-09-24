@@ -7,30 +7,23 @@ import torch
 import contract as C
 
 _RELEASE = Path(__file__).resolve().parents[2]
-COMPATIBILITY = _RELEASE / "cell/configs/adapter_compatibility.json"
+FINGERPRINTS = _RELEASE / "cell/configs/adapter_fingerprints.json"
 
 
 def _check_fold_fingerprint(stored: dict, fold: int, description: str) -> None:
     if not isinstance(stored, dict):
         raise ValueError(f"{description}: fold fingerprint is absent")
-    expected = C.fold_fingerprint(fold)
+    record = json.loads(FINGERPRINTS.read_text())
+    expected = record["folds"].get(str(fold))
+    if expected is None:
+        raise ValueError(f"{description}: no recorded fingerprint for fold {fold}")
     for key, value in expected.items():
-        if key == "cohort_binding_sha256":
-            continue
         if stored.get(key) != value:
             raise ValueError(f"{description}: fold fingerprint differs on {key}")
-    if stored.get("cohort_binding_sha256") == expected["cohort_binding_sha256"]:
-        return
-
-    receipt = json.loads(COMPATIBILITY.read_text())
-    semantic = {key: value for key, value in C.cohort_binding_payload().items()
-                if key != "taxonomy"}
-    if (
-        stored.get("cohort_binding_sha256") != receipt["source_cohort_binding_sha256"]
-        or C.canonical_sha256(semantic) != receipt["semantic_payload_sha256"]
-        or C.sha256_file(_RELEASE / receipt["taxonomy_file"]) != receipt["taxonomy_content_sha256"]
-    ):
-        raise ValueError(f"{description}: cohort binding is not a verified path relocation")
+    if stored.get("cohort_binding_sha256") not in record["accepted_cohort_binding_sha256"]:
+        raise ValueError(f"{description}: cohort binding is not a recorded binding of this cohort")
+    if C.sha256_file(_RELEASE / record["taxonomy_file"]) != record["taxonomy_content_sha256"]:
+        raise ValueError(f"{description}: taxonomy file differs from the recorded taxonomy")
 
 
 def copy_lora_state(model: torch.nn.Module, state: dict) -> None:

@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 import os
-PROJECTS_ROOT = os.environ.get("PROJECTS_ROOT", "/data/heid")
-import os
 
 import ast
 import hashlib

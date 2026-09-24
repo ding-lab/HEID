@@ -227,9 +227,9 @@ def already_complete(backbone: str, sample: str, task_identity: str) -> dict[str
     return {**manifest, "status": "ALREADY_COMPLETE"}
 
 
-def run(backbone: str, sample: str) -> dict[str, Any]:
+def run(backbone: str, sample: str, expected_gpu: str = EXPECTED_GPU) -> dict[str, Any]:
     started_all = time.time()
-    environment = C.require_usable_gpu(EXPECTED_GPU)
+    environment = C.require_usable_gpu(expected_gpu)
     variants = variants_for(backbone)
     dim = FEATURE_DIM[backbone]
     rec = C.record(sample)
@@ -693,6 +693,8 @@ def main() -> int:
     parser.add_argument("--backbone", choices=C.BACKBONES, required=True)
     parser.add_argument("--sample")
     parser.add_argument("--task-id", type=int)
+    parser.add_argument("--expected-gpu", default=EXPECTED_GPU,
+                        help="GPU name every sample of one feature library must be extracted on")
     args = parser.parse_args()
     if args.sample:
         sample = args.sample
@@ -703,7 +705,7 @@ def main() -> int:
         sample = allow[args.task_id]
     else:
         raise ValueError("provide --sample or --task-id")
-    result = run(args.backbone, sample)
+    result = run(args.backbone, sample, args.expected_gpu)
     return 0 if result["status"] in ("PASS", "ALREADY_COMPLETE") else 1
 
 

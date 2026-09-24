@@ -14,8 +14,6 @@ MIN_MEASURED = 30
 PROJ = Path(os.environ.get("PROJECTS_ROOT", "/data/heid"))
 OFFSETS_ROOT = Path(__file__).resolve().parents[1] / "outputs/offsets"
 QC_ROOT = Path(__file__).resolve().parents[1]
-LQ = QC_ROOT / "outputs/lowqc/offsets"
-AM = QC_ROOT / "outputs/ambiguous/offsets"
 ALI = PROJ / "align/registered_he"
 OUT = QC_ROOT / "outputs/results/weak_gate"
 
@@ -52,13 +50,13 @@ def main():
     ap.add_argument("--max-weak-frac", type=float, default=MAX_WEAK_FRAC)
     ap.add_argument("--min-measured", type=int, default=MIN_MEASURED)
     ap.add_argument("--tiles-dir", action="append", default=None,
-                    help="where <field>_tiles.csv live; repeatable. Defaults to "
-                         "the historical batches.")
+                    help="directory holding <field>_tiles.csv; repeatable, later "
+                         "directories win. Defaults to outputs/offsets.")
     ap.add_argument("--out", default=str(OUT))
     a = ap.parse_args()
     log(f"host={os.uname().nodename}")
 
-    dirs = [Path(x) for x in a.tiles_dir] if a.tiles_dir else [OFFSETS_ROOT, AM, LQ]
+    dirs = [Path(x) for x in a.tiles_dir] if a.tiles_dir else [OFFSETS_ROOT]
     files = {}
     for d in dirs:
         if not d.is_dir():
@@ -120,7 +118,7 @@ def main():
                 f"{r.weak_frac:>8.3f}{r.prom_median:>10.4f}{r.peak_median:>10.3f}")
 
     show("flagged low-QC and caught by this gate (true positives)", hit)
-    show("newly excluded by this gate (not previously flagged)", new)
+    show("excluded by this gate and not marked low-QC on disk", new)
     show("flagged low-QC but passed by this gate (failure modes this gate cannot see)", missed)
     log(f"\npassed ({len(clean)} sections); the 5 highest weak_frac:")
     for _, r in clean.head(5).iterrows():

@@ -1,11 +1,5 @@
 {
-  "contract_name": "aligned_HE_v9_region_qc_2026-07-30",
   "source_root": "${PROJECTS_ROOT}/align/aligned_he",
-  "source_files": {
-    "README.md": "cf7386f7f13bcc6f76fb0601989a53a121efc083eb1b4cd57fd3b41b3214cdd0",
-    "_report/cohort_summary.csv": "063027eb8dbf03e2c2be8f5be22b1d833c9b47f5634495cae3f8289db724f110",
-    "_report/blur_rename_map.tsv": "f217947c149c565e21ae506b0a58e91170bf14f0eff37ff4f7528789a8dcce6b"
-  },
   "published_cohorts": [
     "5k",
     "477"
@@ -25,40 +19,13 @@
   "tile_min_keep_fraction": 0.5,
   "gen12_bridge": {
     "per_cell": {
-      "path": "${PROJECTS_ROOT}/tls/prediction/bridge/data/molecular_regions/per_cell.parquet",
-      "sha256": "778d9939a18e2ee59cdd48b6ed134e2e0eed150836b96117ab457ac5358d7e0b"
+      "path": "${PROJECTS_ROOT}/tls/prediction/bridge/data/molecular_regions/per_cell.parquet"
     },
     "per_tls": {
-      "path": "${PROJECTS_ROOT}/tls/prediction/bridge/data/molecular_regions/per_tls.parquet",
-      "sha256": "4428b793b4327dedacaef2ddfef2d33e12e7e457b5f2bc6c895e2bba6040ab7f"
+      "path": "${PROJECTS_ROOT}/tls/prediction/bridge/data/molecular_regions/per_tls.parquet"
     },
     "sample_to_v9": {
-      "path": "${PROJECTS_ROOT}/tls/prediction/bridge/data/molecular_regions/sample_to_field.tsv",
-      "sha256": "5be58cf6d353d428603b49befe326de8005445e2a4e9d44c792e13e4e36784fd"
-    }
-  },
-  "expected": {
-    "published_directories": 363,
-    "weak_directories": 59,
-    "blur_directories": 13,
-    "zero_row_unsuffixed_directories": 12,
-    "region_usable_slides": 279,
-    "region_usable_cells": 58059610,
-    "region_usable_by_cohort": {
-      "5k": {
-        "slides": 231,
-        "cells": 48671697
-      },
-      "477": {
-        "slides": 48,
-        "cells": 9387913
-      }
-    },
-    "tls_region_qc": {
-      "total_regions": 724,
-      "regions_on_usable_slides": 464,
-      "regions_passing_join_gate": 459,
-      "accepted_regions": 459
+      "path": "${PROJECTS_ROOT}/tls/prediction/bridge/data/molecular_regions/sample_to_field.tsv"
     }
   },
   "v4_manifests": [

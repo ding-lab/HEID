@@ -4,7 +4,6 @@ import os
 PROJECTS_ROOT = os.environ.get("PROJECTS_ROOT", "/data/heid")
 
 import json
-import os
 import tempfile
 from collections import defaultdict
 from pathlib import Path
@@ -13,9 +12,6 @@ import numpy as np
 from sklearn.metrics import roc_auc_score
 
 PC = Path(PROJECTS_ROOT + "/cell")
-ROOT = PC / "strategy_discussion"
-SCRATCH = ROOT / "scratch/tme_gate"
-VERIF = ROOT / "outputs/verification"
 
 
 COARSE11 = [

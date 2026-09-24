@@ -23,9 +23,12 @@ PREDICTION_ROOT = _RELEASE / "nerve/prediction"
 EVALUATION = PREDICTION_ROOT / "data/evaluation"
 GOLD = INPUT_ROOT / "nerve/prediction/gold"
 MASKS = INPUT_ROOT / "nerve/prediction/masks"
-CELL_OOF = INPUT_ROOT / "cell/outputs/oof/cls_sigma3"
+CELL_OOF = _RELEASE / "cell/outputs/oof/cls_sigma3_all_schwann"
+OUTPUTS = INPUT_ROOT / "nerve/prediction/outputs"
+EXPECTED_EXPERIMENT_ID = None
 sys.path.insert(0, str(PREDICTION_ROOT / "scripts"))
 import region_operator as OP
+from evaluation_inputs import check_probability_source, read_frame
 
 IOU_THR = 0.10
 TARGET_POS_FRAC = [0.001, 0.002, 0.003, 0.00434, 0.006, 0.008, 0.012, 0.018,
@@ -82,6 +85,7 @@ def load_probs(arm, sample, cell_ids):
     if not hits:
         return None, {"error": "no Cell OOF file"}
     z = np.load(hits[0], allow_pickle=True)
+    check_probability_source(z, EXPECTED_EXPERIMENT_ID, hits[0])
     classes = [str(c) for c in z["identity_classes"]]
     if "Schwann" not in classes:
         return None, {"error": f"Schwann not in identity_classes: {classes}"}
@@ -228,16 +232,32 @@ def pool_key(samples, key):
     }
 
 
+def configure_inputs(gold, masks, cell_oof, experiment_id):
+    global GOLD, MASKS, CELL_OOF, EXPECTED_EXPERIMENT_ID
+    GOLD, MASKS, CELL_OOF = Path(gold), Path(masks), Path(cell_oof)
+    EXPECTED_EXPERIMENT_ID = experiment_id
+
+
 def main() -> int:
-    ap = argparse.ArgumentParser()
+    ap = argparse.ArgumentParser(description="Score one arm of the gene-blind region operator on the evaluation frame.")
     ap.add_argument("--arm", required=True, choices=["CELL", "GOLD", "WHOLE_FIELD"])
     ap.add_argument("--workers", type=int, default=8)
+    ap.add_argument("--frame", type=Path, default=EVALUATION / "frame.json")
+    ap.add_argument("--gold-dir", type=Path, default=GOLD)
+    ap.add_argument("--masks-dir", type=Path, default=MASKS)
+    ap.add_argument("--cell-oof", type=Path, default=CELL_OOF,
+                    help="Cell OOF root holding fold*/<sample>.npz of the head named by the frame")
+    ap.add_argument("--output", type=Path, default=None,
+                    help="default <PROJECTS_ROOT>/nerve/prediction/outputs/operator_<arm>.json")
     args = ap.parse_args()
+    if args.workers < 1:
+        ap.error("--workers must be positive")
 
-    frame = json.loads((EVALUATION / "frame.json").read_text())
-    if frame["status"] != "HEADLINE":
-        print(f"frame status is {frame['status']} -- refusing to score", flush=True)
-        return 5
+    frame = read_frame(args.frame)
+    source = frame.get("probability_source") or {}
+    if args.arm == "CELL" and not source.get("experiment_id"):
+        raise ValueError(f"{args.frame}: frame names no probability_source experiment_id")
+    configure_inputs(args.gold_dir, args.masks_dir, args.cell_oof, source.get("experiment_id"))
     rows = frame["slides"]
     print(f"arm {args.arm}: {len(rows)} slides, {args.workers} workers", flush=True)
 
@@ -252,7 +272,8 @@ def main() -> int:
             return 6
 
     jobs = [(args.arm, r, taus) for r in rows]
-    with Pool(args.workers) as pool:
+    with Pool(args.workers, initializer=configure_inputs,
+              initargs=(GOLD, MASKS, CELL_OOF, EXPECTED_EXPERIMENT_ID)) as pool:
         results = pool.map(process, jobs)
 
     keys = sorted({k for r in results for k in r["per_tau"]})
@@ -274,6 +295,7 @@ def main() -> int:
         "per_sample": results,
     }
     if args.arm == "CELL":
+        report["probability_source"] = dict(source, cell_oof=str(CELL_OOF))
         f1s = {k: pooled[k][f"iou>={IOU_THR:.2f}"]["f1"] for k in keys}
         best = max(f1s, key=f1s.get)
         ends = (f"posfrac_{TARGET_POS_FRAC[0]:.5f}", f"posfrac_{TARGET_POS_FRAC[-1]:.5f}")
@@ -287,7 +309,10 @@ def main() -> int:
         report["n_gold_constant_across_tau"] = len(set(ng.values())) == 1
         report["n_gold_values"] = sorted(set(ng.values()))
 
-    out = EVALUATION / f"operator_{args.arm.lower()}.json"
+    out = args.output or OUTPUTS / f"operator_{args.arm.lower()}.json"
+    if out.resolve().is_relative_to(PREDICTION_ROOT.resolve()):
+        raise ValueError("write evaluation outputs outside the release tree")
+    out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(json.dumps(report, indent=1) + "\n")
     print(json.dumps({k: v for k, v in report.items()
                       if k not in ("per_sample", "pooled")}, indent=1), flush=True)

@@ -3,23 +3,12 @@ export PROJECTS_ROOT=/path/to/data
 export RELEASE_ROOT=/path/to/this/repository
 
 export PYTHON=python
-export INSTANSEG_PYTHON="$PYTHON"
-export CONDA_SH="$HOME/miniconda3/etc/profile.d/conda.sh"
-export CONDA_ENV=heid
+export GEOMETRY_PYTHON="$RELEASE_ROOT/.venv-geometry/bin/python"
 
 export HF_HOME="$PROJECTS_ROOT/cache/hf_home"
 export TORCHINDUCTOR_CACHE_DIR="$PROJECTS_ROOT/cache/inductor"
 
-export LSF_GROUP=
-export DATA_MOUNT=
-export DATA_MOUNT_ALIAS=
-export C1_HOST_PREFIX=
-export C1_GPU_EXCLUDE=
 
-export CELL_SHORT_PARTITION=short
-export CELL_PREEMPT_CPU_PARTITION=preempt-cpu
-export CELL_GPU_PARTITION=gpu
-export CELL_PREEMPT_GPU_PARTITION=preempt-gpu
 
 export PATH_ALIAS_FROM=
 export PATH_ALIAS_TO=
@@ -33,3 +22,11 @@ export DETECTION_POOL_CSV="$PROJECTS_ROOT/cell/detection/data/detection_pool_per
 export TLS_FEATURES="$PROJECTS_ROOT/tls/prediction/features"
 export TLS_LABELS="$PROJECTS_ROOT/tls/prediction/labels"
 export TLS_REPORT_OUTPUT="$PROJECTS_ROOT/tls/define/outputs/reporting"
+
+export THREED_ROOT="$PROJECTS_ROOT/3d"
+export THREED_DATA_ROOT="$PROJECTS_ROOT/data/3d"
+export BLOCK_INFERENCE_ROOT="$THREED_ROOT/inference/blocks"
+export BLOCK_SET=blocks
+export CHROME=
+export PAGE_HOST=
+export PAGE_PORT=8931

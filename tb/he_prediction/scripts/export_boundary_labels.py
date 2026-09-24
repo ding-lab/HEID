@@ -14,6 +14,7 @@ import numpy as np
 import pandas as pd
 
 from cell_source import load_joined_cells as load_corrected_cells
+from experiment_config import load_experiment
 from scipy.ndimage import (
     binary_closing,
     binary_dilation,
@@ -639,7 +640,7 @@ def main() -> None:
     args = parse_args()
     config_path = args.config.resolve()
     project_root = config_path.parent.parent
-    config = json.loads(config_path.read_text(encoding="utf-8"))
+    config = load_experiment(config_path)
     manifest_path = project_root / config["outputs"]["source_manifest"]
     contract_path = project_root / config["outputs"]["data_contract"]
     if not manifest_path.exists() or not contract_path.exists():

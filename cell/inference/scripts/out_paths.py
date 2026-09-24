@@ -1,7 +1,6 @@
 import os
 PROJECTS_ROOT = os.environ.get("PROJECTS_ROOT", "/data/heid")
 import functools
-import os
 from pathlib import Path
 
 import pandas as pd

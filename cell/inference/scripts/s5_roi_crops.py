@@ -7,7 +7,6 @@ _RELEASE = Path(__file__).resolve().parents[3]
 
 import argparse
 import json
-import os
 import sys
 from pathlib import Path
 
@@ -219,7 +218,7 @@ def main() -> None:
     parser.add_argument("--slides", nargs="+", help="multiple slides; same argument name as s4 so the three steps can be chained")
     parser.add_argument("--shard", type=int, default=0)
     parser.add_argument("--n-shards", type=int, default=1)
-    parser.add_argument("--project", help="process only this one cancer type (deliverables are organized by cancer type)")
+    parser.add_argument("--project", help="process only this one cancer type (outputs are organized by cancer type)")
     parser.add_argument("--n-roi", type=int, default=N_ROI)
     parser.add_argument("--roi-expand", type=float, default=ROI_EXPAND)
     parser.add_argument("--min-ctx-um", type=float, default=MIN_CTX_UM)

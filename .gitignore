@@ -30,9 +30,24 @@ logs/
 *.svs
 *.zarr/
 
+.venv/
+.venv-geometry/
+venv/
 env.sh
 .env
 *.secret
 .DS_Store
 *~
 *.swp
+
+cell/configs/contract.json
+cell/configs/data_contract.json
+cell/configs/xenium_5k_index.json
+cell/configs/identity_exclusion_manifest.json
+cell/configs/scoring_denominator.json
+cell/data/
+cell/scratch/
+tb/he_prediction/data/
+tb/he_prediction/scratch/
+tls/prediction/configs/slides_5k.tsv
+tls/prediction/data/

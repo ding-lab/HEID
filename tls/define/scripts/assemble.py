@@ -1,12 +1,10 @@
 import paths as P
 import os
-PROJECTS_ROOT = os.environ.get("PROJECTS_ROOT", "/data/heid")
 import pandas as pd, numpy as np, glob, os, sys
 from scipy.ndimage import distance_transform_edt, binary_closing, binary_fill_holes
 from skimage.morphology import disk
 
 ROOT = str(P.WORKSPACE)
-X1000 = str(P.PROJECTS)
 SCORE = str(P.PROGRAMS)
 H5AD = str(P.CELLS)
 TLS_OUTPUT_5K = str(P.ACCEPTED / "outputs/5k")
@@ -26,6 +24,8 @@ BND_DIR = {os.path.basename(p).replace("_boundary_distance.csv", ""): p
 def assemble(sample):
     tls_dir, tissue = TLS_DIR[sample]
     sc = pd.read_parquet(f"{SCORE}/{sample}.parquet"); sc["cell_id"] = sc.cell_id.astype(str)
+    if set(sc["scoring_method"].astype(str)) != {"ulm_pertype"}:
+        raise ValueError(f"{sample}: program scores were not computed with ulm_pertype")
     t = pd.read_csv(f"{tls_dir}/{sample}_tls.csv",
                     usecols=["cell_id", "cell_type", "tls_region", "in_tls_core", "TLS_State"],
                     dtype={"cell_id": str, "TLS_State": str}, low_memory=False, keep_default_na=False)

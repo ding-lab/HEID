@@ -26,9 +26,8 @@ def main():
     ap.add_argument("--white-dir", default=str(WHITE))
     ap.add_argument("--blur-dir", default=str(BLUR))
     ap.add_argument("--allow-missing-blur", action="store_true",
-                    help="write a table with the three image-quality rules "
-                         "unevaluated; off by default because such a table "
-                         "looks complete and is not")
+                    help="write the table with the three image-quality rules "
+                         "set to False when no blur measurement exists")
     ap.add_argument("--out", default=str(OUT))
     a = ap.parse_args()
     log(f"host={os.uname().nodename}  {a.cancer}/{a.field}")
@@ -52,8 +51,6 @@ def main():
         for c in ("drop_out_of_focus", "drop_no_visible_nucleus", "drop_featureless"):
             d[c] = False
     else:
-
-
         log(f"  ERROR no blur measurement at {bp} -- three of the five rules "
             f"cannot be evaluated. Run 09_blur_cell_filter.py first, or pass "
             f"--allow-missing-blur if you really want a partial table.")

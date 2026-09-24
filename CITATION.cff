@@ -6,6 +6,7 @@ authors:
   - family-names: Xiong
     given-names: Jiajie
 license: Apache-2.0
+repository-code: "https://github.com/ding-lab/HEID"
 abstract: >-
   H&E cell classification and image alignment, molecular definition of tumor boundaries,
   TLS and Schwann/Glial regions, and separate H&E tumor-boundary prediction, TLS region and

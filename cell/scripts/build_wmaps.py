@@ -9,7 +9,6 @@ _RELEASE = Path(__file__).resolve().parents[2]
 import argparse
 import hashlib
 import json
-import os
 import sys
 import time
 from collections import defaultdict
@@ -81,7 +80,7 @@ def load_cells(sample: str, record: dict) -> tuple[pd.DataFrame, str]:
     labels = pd.read_parquet(LABELS / f"{sample}.parquet")
     labels["cell_id"] = labels["cell_id"].astype(str)
     if labels["cell_id"].duplicated().any():
-        raise RuntimeError(f"duplicate cell_id in labels_v8: {sample}")
+        raise RuntimeError(f"duplicate cell_id in the label table: {sample}")
     cells = table.merge(labels, on="cell_id", how="inner")
     if len(cells) != int(record["n_keep_cells_own"]):
         raise RuntimeError(
@@ -130,7 +129,7 @@ def build(sample: str) -> dict:
     xen_dir = Path(index[sample]["path"])
     src = xen_dir / "cell_boundaries.parquet"
     if not src.is_file():
-        raise FileNotFoundError(f"unreachable boundary file (pyxis not stripped?): {src}")
+        raise FileNotFoundError(f"unreachable boundary file: {src}")
 
     poly = load_polys(src, set(cids.tolist()))
     n_rows_file = int(poly.attrs["n_rows_file"])

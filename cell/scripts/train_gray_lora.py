@@ -82,7 +82,7 @@ def load_run_config(path: Path) -> dict[str, Any]:
         raise ValueError(f"unsupported gray adapter config schema in {path}")
     split_id = json.loads(SPLIT.read_text()).get("split_id")
     if config.get("split_id") != split_id:
-        raise ValueError("config split_id differs from canonical clean177")
+        raise ValueError("config split_id differs from the canonical reference split")
     if config.get("label_mapping_id") != LABEL_MAPPING_ID:
         raise ValueError("config label_mapping_id differs from frozen raw-to-refine17")
     if config.get("label_mapping_sha256") != LABEL_MAPPING_SHA256:
@@ -200,11 +200,11 @@ def load_gray_cropbank(
         if manifest.get(key) != value
     }
     if mismatch:
-        raise RuntimeError(f"gray cropbank provenance mismatch/legacy RGB forbidden: {mismatch}")
+        raise RuntimeError(f"gray cropbank provenance mismatch: {mismatch}")
     mapping_source = manifest.get("label_mapping_source")
     if mapping_source != contract_manifest_record():
         raise RuntimeError(
-            "legacy gray cropbank forbidden: label_mapping_source is absent or differs"
+            "gray cropbank label_mapping_source is absent or differs"
         )
     for key in ("crops", "labels", "samples", "cells"):
         record = manifest.get("outputs", {}).get(key, {})
@@ -344,7 +344,7 @@ def load_single_plane_model(
 ) -> tuple[nn.Module, Any, list[nn.Module], dict[str, Any]]:
     assert_single_plane_interface(interface_id)
     source = SHARED_SCRIPTS / ("train_lora_pc.py" if backbone == "uni2" else "train_lora_phikon.py")
-    module = _load_module(f"a1_gray_lora_{backbone}", source)
+    module = _load_module(f"gray_lora_{backbone}", source)
     base_provenance = resolve_base_model_sources(backbone, module)
     model = module.load_uni2(device) if backbone == "uni2" else module.load_phikon(device)
     fold_model_patch_projection(model, backbone)
@@ -389,14 +389,14 @@ def checkpoint_manifest_path(checkpoint: Path) -> Path:
 def validate_adapter_contract(checkpoint: dict[str, Any], expected: dict[str, Any]) -> None:
     contract = checkpoint.get("a1_contract")
     if not isinstance(contract, dict):
-        raise RuntimeError("legacy/RGB adapter forbidden: checkpoint has no a1_contract")
+        raise RuntimeError("checkpoint has no a1_contract")
     mismatch = {
         key: {"expected": value, "observed": contract.get(key)}
         for key, value in expected.items()
         if contract.get(key) != value
     }
     if mismatch:
-        raise RuntimeError(f"adapter provenance mismatch/legacy RGB adapter forbidden: {mismatch}")
+        raise RuntimeError(f"adapter provenance mismatch: {mismatch}")
     if contract.get("input_channels") != 1:
         raise RuntimeError("RGB adapter forbidden: checkpoint input_channels is not one")
     if contract.get("outer_test_used_for_training") is not False:
@@ -493,7 +493,7 @@ def train(
     adapter_root: Path | None = None,
 ) -> dict[str, Any]:
     if not torch.cuda.is_available():
-        raise RuntimeError("CUDA is not visible; refusing login-node/CPU LoRA training")
+        raise RuntimeError("CUDA is not visible; a CUDA device is required")
     config = load_run_config(config_path)
     candidate = configured_candidate(config, preprocessing_id)
     interface_id = str(config["backbone_interface"]["id"])
@@ -520,9 +520,9 @@ def train(
     if run_kind == "diagnostic_smoke":
         scratch = (A1 / "scratch").resolve()
         if not cropbank_root.resolve().is_relative_to(scratch):
-            raise ValueError("diagnostic cropbank root must be below a1/scratch")
+            raise ValueError("diagnostic cropbank root must be below the diagnostic scratch root")
         if adapter_root is None or not adapter_root.resolve().is_relative_to(scratch):
-            raise ValueError("diagnostic adapter root must be below a1/scratch")
+            raise ValueError("diagnostic adapter root must be below the diagnostic scratch root")
     checkpoint = checkpoint_path(
         backbone, fold, preprocessing_id, interface_id, adapter_root
     )
@@ -709,7 +709,3 @@ def main() -> None:
             sort_keys=True,
         )
     )
-
-
-if __name__ == "__main__":
-    main()

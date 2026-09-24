@@ -8,7 +8,6 @@ import argparse
 import hashlib
 import json
 import math
-import os
 import platform
 import re
 import sys
@@ -393,16 +392,13 @@ def build_slide(slide, svs, native_mpp, device, n_workers, executor,
         "flags": flags,
         "native_mpp": native_mpp, "model_pixel_size": model_ps, "scale": scale,
         "crop": {"xpx_um": XPX, "crop_px": CROP_HALF * 2, "fov_um": CROP_HALF * 2 * XPX,
-                 "resample": "INTER_LINEAR (native->0.2125um/px is an upsample for HNSC)",
+                 "resample": "INTER_LINEAR",
                  },
         "nucleus_source": "InstanSeg label mask contour (cv2.findContours, model space 0.5um/px)",
-        "nucleus_area_definition": ("polygon area of OUR contour; training used Xenium's stored "
-                                    "nucleus_area, which was ~1/0.94x the area of its own polygon "
-                                    "(calib_polyarea_over_nucarea 0.936-0.947) -- a known "
-                                    "definitional offset, NOT corrected here"),
+        "nucleus_area_definition": "contour_polygon_area_um2",
         "sigma3": {"grid": GRID, "patch_px": PATCH, "sigma_px": SIGMA_PX,
                    "fill_shift": FILL_SHIFT, "quant_scale": QUANT_SCALE,
-                   "polygon_source": "InstanSeg NUCLEUS contour (detector trained on Xenium WHOLE-CELL)"},
+                   "polygon_source": "InstanSeg nucleus contour (detector trained on Xenium whole-cell boundaries)"},
         "detector": {"ckpt": LUNG_CKPT, "post": POST, "tile": TILE, "overlap": OVERLAP,
                      "min_tissue": MIN_TISSUE, "halo": HALO},
         "seconds": secs,
@@ -474,7 +470,7 @@ def main():
 
 
     if device != "cuda" and args.device is None and not args.dry_run:
-        log("FATAL: no CUDA visible (pyxis not stripped at submit time?). Abort.")
+        log("FATAL: a CUDA device is required.")
         sys.exit(2)
 
     nw = args.workers or max(1, int(os.environ.get("SLURM_CPUS_PER_TASK", "8")) - 2)

@@ -1,0 +1,71 @@
+{
+  "schema": "heid.inputs.v1",
+  "branch": "tb/boundary",
+  "root": "${PROJECTS_ROOT}/tb/boundary",
+  "order": [
+    "scripts/boundary_distance.py <dataset> <cancer_type> <sample>",
+    "scripts/tumor_area.py <cancer_type> --samples <roster>"
+  ],
+  "inputs": [
+    {
+      "name": "xenium_centroids",
+      "path": "inputs/xenium/<dataset>/<cancer>/<sample>/cells.parquet",
+      "alternatives": [
+        "cells.csv.gz",
+        "cells.csv"
+      ],
+      "columns": {
+        "cell_id": "string",
+        "x_centroid": "float, micrometres",
+        "y_centroid": "float, micrometres"
+      },
+      "consumed_by": [
+        "scripts/boundary_distance.py",
+        "scripts/tumor_area.py"
+      ]
+    },
+    {
+      "name": "cell_type_annotation",
+      "path": "cache/celltype_k10/<sample>.csv",
+      "fallbacks": [
+        "cache/cell_types_by_sample/<sample>.csv",
+        "inputs/cell_atlas/477/allsolidtumor.cells.csv",
+        "inputs/cell_atlas/5k/allsolidtumor5k.cells.csv"
+      ],
+      "columns": {
+        "cell_id": "string",
+        "cell_type": "string; a tumor seed begins with 'Tumor', every other label is a normal seed"
+      },
+      "atlas_columns": {
+        "barcode": "string, '<cell_id>_<sample>'",
+        "cell_type": "string",
+        "dataset": "string, equal to the sample"
+      },
+      "consumed_by": [
+        "scripts/boundary_distance.py",
+        "scripts/tumor_area.py"
+      ]
+    },
+    {
+      "name": "section_roster",
+      "path": "samples_5k_all.tsv at the module root, or any path passed to tumor_area.py --samples",
+      "format": "tab-separated, no header",
+      "columns": {
+        "dataset": "5k or 477",
+        "cancer_type": "one of BRCA, CHOL, CRC, GBM, HNSC, LUNG, PDAC, PRAD, RCC, SKCM",
+        "sample": "string"
+      },
+      "consumed_by": [
+        "scripts/tumor_area.py"
+      ]
+    }
+  ],
+  "arguments": {
+    "boundary_distance.py": "<dataset> <cancer_type> <sample>",
+    "tumor_area.py": "<cancer_type> --samples <roster>"
+  },
+  "outputs": {
+    "per_cell": "outputs/<dataset>/<cancer>/<sample>/<sample>_boundary_distance.csv with cell_id, tumor_region, side, dist_sdf_um, dist_sdf_region, dist_iface_um, cell_type",
+    "area": "outputs/5k/<cancer>/<cancer>_tumor_area.csv"
+  }
+}

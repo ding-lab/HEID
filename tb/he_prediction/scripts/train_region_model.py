@@ -28,6 +28,7 @@ from torch.utils.data import DataLoader, Dataset
 from models import build_model, summarize_model
 from models_fm import build_fm_model, is_foundation_candidate
 from he_mask_dataset import OmePyramidReader
+from experiment_config import load_experiment
 
 
 SCHEMA = "he_boundary_prediction.v1.region_training.v1"
@@ -1558,7 +1559,7 @@ def main() -> None:
     config_path = args.config.resolve()
     candidates_path = args.candidates_config.resolve()
     project_root = config_path.parent.parent
-    experiment = json.loads(config_path.read_text(encoding="utf-8"))
+    experiment = load_experiment(config_path)
     candidates_document = json.loads(
         candidates_path.read_text(encoding="utf-8")
     )

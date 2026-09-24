@@ -4,7 +4,6 @@ import os
 PROJECTS_ROOT = os.environ.get("PROJECTS_ROOT", "/data/heid")
 
 import argparse
-import os
 import time
 from pathlib import Path
 
@@ -33,10 +32,10 @@ from mpl_toolkits.axes_grid1.anchored_artists import AnchoredSizeBar
 REPO_ROOT = Path(PROJECTS_ROOT) / "tb" / "boundary"
 
 
-DATA_X1000 = REPO_ROOT / "inputs"
-DATA_ROOT = DATA_X1000 / "xenium"
-CELLATLAS_477 = DATA_X1000 / "cell_atlas" / "477" / "allsolidtumor.cells.csv"
-CELLATLAS_5K = DATA_X1000 / "cell_atlas" / "5k" / "allsolidtumor5k.cells.csv"
+INPUTS_ROOT = REPO_ROOT / "inputs"
+DATA_ROOT = INPUTS_ROOT / "xenium"
+CELLATLAS_477 = INPUTS_ROOT / "cell_atlas" / "477" / "allsolidtumor.cells.csv"
+CELLATLAS_5K = INPUTS_ROOT / "cell_atlas" / "5k" / "allsolidtumor5k.cells.csv"
 
 
 K10_CACHE = REPO_ROOT / "cache" / "celltype_k10"

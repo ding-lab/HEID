@@ -2,11 +2,9 @@
 from __future__ import annotations
 import paths as P
 import os
-PROJECTS_ROOT = os.environ.get("PROJECTS_ROOT", "/data/heid")
 
 import argparse
 import json
-import os
 import time
 from pathlib import Path
 
@@ -87,14 +85,22 @@ NORM_MODE = bool(H5AD_DIR)
 GC_DIR = str(P.GC)
 
 
+PROGRAM_SCORING_METHOD = "ulm_pertype"
+
+
 def _load_gc_tau():
     p = os.environ.get("TLS_GC_THRESH", str(Path(__file__).resolve().parents[1] / "configs/gc_thresholds.json"))
-    if p and Path(p).exists():
-        with open(p) as fh:
-            d = json.load(fh)
-        return d.get("TAU"), d.get("TAU_LOW")
-    return None, None
-TAU_GC, TAU_GC_LOW = _load_gc_tau()
+    with open(p) as fh:
+        d = json.load(fh)
+    return d["TAU"], d["TAU_LOW"], d["scoring_method"]
+TAU_GC, TAU_GC_LOW, GC_SCORING_METHOD = _load_gc_tau()
+
+
+def _require_method(frame: pd.DataFrame, expected: str, path) -> None:
+    methods = set(frame["scoring_method"].astype(str).unique()) if "scoring_method" in frame else set()
+    if methods != {expected}:
+        raise ValueError(f"{path}: scores were computed with {sorted(methods)}, "
+                         f"the thresholds are calibrated for {expected}")
 _PS_CACHE: dict = {}
 
 def _persample(sample: str) -> pd.DataFrame:
@@ -108,7 +114,9 @@ def _persample(sample: str) -> pd.DataFrame:
         if GC_DIR:
             gp = Path(GC_DIR) / f"{sample}.parquet"
             if gp.exists():
-                g = pd.read_parquet(gp)[["cell_id", "gc_score"]]
+                g = pd.read_parquet(gp)
+                _require_method(g, GC_SCORING_METHOD, gp)
+                g = g[["cell_id", "gc_score"]]
                 g["cell_id"] = g["cell_id"].astype(str)
                 d = d.merge(g, on="cell_id", how="left")
             else:
@@ -1381,6 +1389,7 @@ def main() -> None:
     _score_path = PROGRAM_SCORE_DIR / f"{sample}.parquet"
     if _score_path.exists():
         _g7 = pd.read_parquet(_score_path); _g7["cell_id"] = _g7["cell_id"].astype(str)
+        _require_method(_g7, PROGRAM_SCORING_METHOD, _score_path)
         _g7 = _g7.set_index("cell_id")
         _cid = df["cell_id"].astype(str)
         for _grp, (_col, _ts) in _GRP.items():
@@ -1465,7 +1474,7 @@ def main() -> None:
             "n_state_reference": sum(1 for c in tls_clusters if c.get("TLS_State_source") == "reference"),
             "validated": None,
             "validation_status": "NOT_EVALUATED_THIS_RUN",
-            "validation_note": "Rule/reference agreement is not computed in this run. Matching reference labels are used directly; other tumor TLS use the molecular rule. The frozen thresholds are not independently pathology calibrated.",
+            "validation_note": "Matching reference labels are used directly; other tumor TLS use the molecular rule.",
 
             "gc_rung_counts": {lab: sum(1 for c in tls_clusters if c["gc_rung_label"] == lab)
                                for lab in ("gc_quiet", "low_GC", "active_GC")},
@@ -1487,7 +1496,7 @@ def main() -> None:
             "AICDA_FLOOR_N": AICDA_FLOOR_N, "MKI67_CORROB_CUT": MKI67_CORROB_CUT,
             "TAU_GC": TAU_GC, "TAU_GC_LOW": TAU_GC_LOW, "MIN_B_CELLS": MIN_B_CELLS,
             "COMP_PLASMA_DOM": COMP_PLASMA_DOM, "COMP_B_DOM": COMP_B_DOM,
-            "_provenance": "Frozen algorithm settings and uncalibrated cohort-percentile priors; n_aicda>=4 is a fixed minimum-count setting. These thresholds are not independently pathology calibrated.",
+            "_provenance": "Frozen algorithm settings and cohort-percentile priors; n_aicda>=4 is a fixed minimum-count setting.",
         },
         "tls": [{k: v for k, v in c.items() if k not in ("core", "region")}
                 for c in tls_clusters],

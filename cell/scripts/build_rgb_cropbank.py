@@ -62,7 +62,7 @@ def load_config(path: Path) -> dict[str, Any]:
         raise ValueError("unsupported RGB adapter config schema")
     split_id = json.loads(SPLIT.read_text()).get("split_id")
     if config.get("split_id") != split_id:
-        raise ValueError("RGB config split_id differs from clean177")
+        raise ValueError("RGB config split_id differs from the canonical reference split")
     if config.get("label_mapping_id") != LABEL_MAPPING_ID:
         raise ValueError("RGB config label_mapping_id differs from the frozen label contract")
     if config.get("label_mapping_sha256") != LABEL_MAPPING_SHA256:
@@ -408,7 +408,3 @@ def main() -> None:
             sort_keys=True,
         )
     )
-
-
-if __name__ == "__main__":
-    main()

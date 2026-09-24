@@ -1,39 +1,30 @@
 #!/usr/bin/env python3
 import os
 PROJECTS_ROOT = os.environ.get("PROJECTS_ROOT", "/data/heid")
-import os
 import csv
 import json
 
 
-PDC = PROJECTS_ROOT
-HEID = os.path.join(PDC, "cell")
-DETECTION_ROOT = os.path.join(HEID, "detection")
+PROJECTS = PROJECTS_ROOT
+CELL_ROOT = os.path.join(PROJECTS, "cell")
+DETECTION_ROOT = os.path.join(CELL_ROOT, "detection")
 
 
 DETECTION_POOL_CSV = os.environ.get("DETECTION_POOL_CSV", os.path.join(DETECTION_ROOT, "data", "detection_pool_per_sample.csv"))
 
 
-X1000_HE_ROOT = os.path.join(PDC, "align", "registered_he")
+REGISTERED_HE_ROOT = os.path.join(PROJECTS, "align", "registered_he")
 HE_FILENAMES = ("he_on_xenium.ome.tif", "he_aligned.ome.tif")
 
 
-XCACHE_ROOT = os.path.join(DETECTION_ROOT, "data", "xenium_cache")
-
-
-CELLTYPE_SPLIT = os.path.join(HEID, "inputs", "split_5fold.json")
+CELLTYPE_SPLIT = os.path.join(CELL_ROOT, "inputs", "split_5fold.json")
 
 
 PXSIZE_UM = 0.2125
 
-VIABLE_CANCERS = ["BRCA", "CRC", "PDAC", "RCC", "HNSC", "LUNG"]
-THIN_CANCERS = ["CHOL", "SKCM"]
-BLOCKED_THIN = ["GBM"]
-PRAD_GATED = "PRAD"
-
 
 def resolve_he(cohort, cancer, sample):
-    base = os.path.join(X1000_HE_ROOT, str(cohort), cancer, sample)
+    base = os.path.join(REGISTERED_HE_ROOT, str(cohort), cancer, sample)
     for fn in HE_FILENAMES:
         p = os.path.join(base, fn)
         if os.path.exists(p):
@@ -42,11 +33,7 @@ def resolve_he(cohort, cancer, sample):
 
 
 def he_align_json(cohort, cancer, sample):
-    return os.path.join(X1000_HE_ROOT, str(cohort), cancer, sample, "global_alignment.json")
-
-
-def xcache_path(cancer, sample, kind="nucleus_boundaries"):
-    return os.path.join(XCACHE_ROOT, cancer, f"{sample}__{kind}.parquet")
+    return os.path.join(REGISTERED_HE_ROOT, str(cohort), cancer, sample, "global_alignment.json")
 
 
 def labels_root(cancer):

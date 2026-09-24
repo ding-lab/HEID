@@ -17,8 +17,6 @@ PC = Path(PROJECTS_ROOT + "/cell")
 COHORT_REFERENCE_ROOT = PC / "inputs/cohort_reference"
 RAW_POLYS = COHORT_REFERENCE_ROOT / "outputs/wmaps/raw_polys"
 CELL_TABLES = PC / "data/cell_tables"
-COHORT = _RELEASE / "cell/data/cohort_clean177.csv"
-ALIGNED_INDEX = _RELEASE / "cell/data/aligned_he_index.json"
 
 PX_UM = 0.2125
 CROP = 224
@@ -137,24 +135,3 @@ def read_crop(zarr_image, x_px: float, y_px: float) -> np.ndarray:
     if sy1 > sy0 and sx1 > sx0:
         crop[sy0 - y0:sy1 - y0, sx0 - x0:sx1 - x0] = np.asarray(zarr_image[sy0:sy1, sx0:sx1, :])
     return crop
-
-
-def cohort_row(sample: str) -> pd.Series:
-    cohort = pd.read_csv(COHORT)
-    for column in cohort.columns:
-        if cohort[column].dtype == object:
-            cohort[column] = cohort[column].map(lambda v: os.path.expandvars(v) if isinstance(v, str) else v)
-    rows = cohort[cohort["sample"] == sample]
-    if len(rows) != 1:
-        raise RuntimeError(f"sample is absent or duplicated in clean177: {sample}")
-    return rows.iloc[0]
-
-
-def aligned_offsets(sample: str) -> pd.DataFrame:
-    import json
-    index = _expand_env(json.loads(ALIGNED_INDEX.read_text())["index"])
-    if sample not in index:
-        raise RuntimeError(f"sample is absent from the aligned-cell directory index: {sample}")
-    keep = pd.read_parquet(index[sample]["keep_parquet"], columns=["cell_id", "dx_um", "dy_um"])
-    keep["cell_id"] = keep["cell_id"].astype(str)
-    return keep.drop_duplicates("cell_id")

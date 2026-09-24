@@ -3,7 +3,6 @@
 from __future__ import annotations
 import os
 PROJECTS_ROOT = os.environ.get("PROJECTS_ROOT", "/data/heid")
-import os
 
 import argparse
 import json
@@ -16,7 +15,7 @@ import audit_input_content as audit
 
 
 SCHEMA = "he_boundary_prediction.v1.r4_input_alias_validation.v1"
-PDC_PROJECT_PREFIXES = tuple(
+PROJECT_PREFIXES = tuple(
     Path(p) for p in os.environ.get("PROJECT_PATH_ALIASES", f"{PROJECTS_ROOT}:{Path(__file__).resolve().parents[3]}").split(":")
 )
 
@@ -27,13 +26,13 @@ def path_identity(path: Path | str) -> str:
         raise ValueError(f"path is not absolute: {path}")
     if ".." in candidate.parts:
         raise ValueError(f"path contains parent traversal: {path}")
-    for prefix in PDC_PROJECT_PREFIXES:
+    for prefix in PROJECT_PREFIXES:
         try:
             relative = candidate.relative_to(prefix)
         except ValueError:
             continue
         return relative.as_posix()
-    raise ValueError(f"path uses an unapproved PDC storage root: {path}")
+    raise ValueError(f"path uses an unapproved storage root: {path}")
 
 
 def normalized_artifact(path: Path) -> dict[str, Any]:

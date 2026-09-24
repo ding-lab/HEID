@@ -1,0 +1,95 @@
+{
+  "schema": "heid.inputs.v1",
+  "branch": "tb/he_prediction",
+  "root": "RELEASE_ROOT/tb/he_prediction",
+  "inputs": [
+    {
+      "name": "cohort_manifest",
+      "path": "data/manifests/source_cohort.csv",
+      "produced_by": "scripts/prepare_input_contract.py --write-manifests (from the acquired original through the path map)",
+      "columns": {
+        "sample": "string, unique", "patient": "string", "cancer": "string", "cohort": "string, 5k",
+        "fold": "integer 0-4, patient-disjoint", "n_cells": "integer",
+        "he_path": "aligned H&E OME-TIFF, ${PROJECTS_ROOT}/align/aligned_he/<cohort>/<cancer>/<sample>/he_aligned.ome.tif",
+        "he_size_y_px": "integer", "he_size_x_px": "integer", "he_mpp_um": "0.2125", "he_sha256": "hex",
+        "cell_table_path": "${PROJECTS_ROOT}/align/aligned_he/<cohort>/<cancer>/<sample>/micro/<sample>_cells_for_training.parquet",
+        "cell_table_sha256": "hex",
+        "boundary_reference_csv": "${PROJECTS_ROOT}/tb/boundary/outputs/<cohort>/<cancer>/<sample>/<sample>_boundary_distance.csv",
+        "boundary_reference_size_bytes": "integer", "boundary_log": "path",
+        "explicit_interface_pixels": "integer", "has_explicit_interface": "boolean",
+        "label_path": "${RELEASE_ROOT}/tb/he_prediction/data/labels/<cancer>/<sample>.npz"
+      },
+      "consumed_by": ["scripts/export_boundary_labels.py", "scripts/finalize_label_dataset.py", "scripts/build_tile_index.py", "scripts/audit_input_content.py", "scripts/train_region_model.py"]
+    },
+    {
+      "name": "reference_manifest",
+      "path": "data/manifests/source_cohort_reference.csv",
+      "produced_by": "scripts/prepare_input_contract.py --write-manifests",
+      "columns": "as cohort_manifest; the reference set bound to configs/baseline_controls/experiment_baseline.json",
+      "consumed_by": ["scripts/cohort_contract.py", "scripts/audit_input_content.py", "scripts/prepare_input_contract.py"]
+    },
+    {
+      "name": "cohort_binding",
+      "path": "data/manifests/cohort_binding.json",
+      "supplied_with": "the cohort data",
+      "structure": {
+        "schema": "heid.tb.cohort_binding.v1",
+        "configurations": {
+          "<configuration path under configs/>": {
+            "cohort": {"contract": "string", "n_cancers": "integer", "n_cell_rows": "integer", "n_patients": "integer", "n_samples": "integer"},
+            "inputs": {"<artifact name>": "path of an attested input artifact"}
+          }
+        }
+      },
+      "role": "joined with its configuration by scripts/experiment_config.py; the joined object is what checkpoints, tuning summaries and fold selections hash",
+      "consumed_by": ["scripts/experiment_config.py"]
+    },
+    {
+      "name": "acquired_source_records",
+      "arguments": ["--original-contract", "--original-reference-manifest", "--original-source-manifest", "--original-feature-manifest", "--original-input-receipt"],
+      "supplied_with": "the cohort data; the input receipt must have status COHORT_LABEL_AND_HE_CONTENT_VERIFIED and bind the other four files by sha256",
+      "consumed_by": ["scripts/prepare_input_contract.py"]
+    },
+    {
+      "name": "path_map",
+      "argument": "--path-map",
+      "format": "JSON object mapping absolute source prefixes to absolute local prefixes; the longest matching prefix applies",
+      "consumed_by": ["scripts/prepare_input_contract.py"]
+    },
+    {
+      "name": "molecular_reference",
+      "path": "boundary_reference_csv of each manifest row",
+      "produced_by": "tb/boundary/scripts/boundary_distance.py",
+      "columns": {"cell_id": "string", "cell_type": "string", "side": "read only for reference replay", "dist_sdf_um": "read only for reference replay"},
+      "consumed_by": ["scripts/cell_source.py"]
+    },
+    {
+      "name": "aligned_he",
+      "path": "he_path and cell_table_path of each manifest row",
+      "produced_by": "align/cell_qc/scripts/publish_aligned_he.py",
+      "format": "uint8 RGB OME-TIFF pyramid with YXS axes at the manifest's level-0 size; training table columns cell_id, he_px, he_py",
+      "consumed_by": ["scripts/cell_source.py", "scripts/train_region_model.py", "scripts/audit_input_content.py"]
+    },
+    {
+      "name": "encoder",
+      "path": "Hugging Face cache under HF_HOME",
+      "identifier": "owkin/phikon-v2",
+      "consumed_by": ["scripts/models_fm.py"]
+    },
+    {
+      "name": "acquired_checkpoint",
+      "arguments": ["--checkpoint", "--original-config", "--original-candidates", "--summary"],
+      "supplied_with": "the trained weights, together with the exact original configurations",
+      "consumed_by": ["scripts/relocate_checkpoint.py"]
+    }
+  ],
+  "order": [
+    "scripts/prepare_input_contract.py",
+    "scripts/export_boundary_labels.py --all",
+    "scripts/finalize_label_dataset.py",
+    "scripts/build_tile_index.py",
+    "scripts/audit_input_content.py",
+    "scripts/validate_input_content_receipt.py",
+    "scripts/run_fold.py --fold <0-4>"
+  ]
+}

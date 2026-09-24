@@ -19,7 +19,7 @@ BLOCK_PX = 4096
 
 PROJ = Path(os.environ.get("PROJECTS_ROOT", "/data/heid"))
 QC_ROOT = Path(__file__).resolve().parents[1]
-XEN = PROJ / "data/X1000/Xenium/5k"
+XEN = PROJ / "align/xenium/5k"
 ALI = PROJ / "align/registered_he/5k"
 OUT = QC_ROOT / "outputs/results/white_filter"
 

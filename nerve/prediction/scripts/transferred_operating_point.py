@@ -8,7 +8,6 @@ PROJECTS_ROOT = os.environ.get("PROJECTS_ROOT", "/data/heid")
 
 import glob
 import json
-import os
 import sys
 from pathlib import Path
 
@@ -18,9 +17,12 @@ PREDICTION_ROOT = _RELEASE / "nerve/prediction"
 EVALUATION = PREDICTION_ROOT / "data/evaluation"
 FOLDS = PREDICTION_ROOT / "data/folds_he_safe.json"
 GOLD = INPUT_ROOT / "nerve/prediction/gold"
-CELL_OOF = INPUT_ROOT / "cell/outputs/oof/cls_sigma3"
-OUT = EVALUATION / "transferred_operating_point.json"
+CELL_OOF = _RELEASE / "cell/outputs/oof/cls_sigma3_all_schwann"
+FRAME = EVALUATION / "frame.json"
+OUT = INPUT_ROOT / "nerve/prediction/outputs/transferred_operating_point.json"
 IOU = "iou>=0.10"
+sys.path.insert(0, str(PREDICTION_ROOT / "scripts"))
+from evaluation_inputs import check_probability_source, read_folds, read_frame, read_replay
 
 
 def prf(tp, n_pred, n_gold):
@@ -103,7 +105,10 @@ def threshold_drift(report, fold_of):
     import pandas as pd
     keys = report["operating_points"]
     gold = GOLD
-    frame = json.loads((EVALUATION / "frame.json").read_text())
+    frame = read_frame(FRAME)
+    expected = (frame.get("probability_source") or {}).get("experiment_id")
+    if not expected:
+        raise ValueError(f"{FRAME}: frame names no probability_source experiment_id")
     per_slide_probs = {}
     for row in frame["slides"]:
         s = row["sample"]
@@ -111,6 +116,7 @@ def threshold_drift(report, fold_of):
         if not hits:
             continue
         z = np.load(hits[0], allow_pickle=True)
+        check_probability_source(z, expected, hits[0])
         classes = [str(c) for c in z["identity_classes"]]
         k = classes.index("Schwann")
         m = dict(zip(z["cell"].astype(str), z["prob"][:, k].astype(np.float32)))
@@ -151,14 +157,23 @@ def threshold_drift(report, fold_of):
 
 
 def main() -> int:
+    global FOLDS, FRAME, GOLD, CELL_OOF
     import argparse
     ap = argparse.ArgumentParser(description="Evaluate the Cell replay operating point across target folds.")
     ap.add_argument("--counts-only", action="store_true", help="Re-pool packaged counts without reading external probabilities or recalculating threshold drift.")
     ap.add_argument("--output", type=Path, default=OUT)
+    ap.add_argument("--folds", type=Path, default=FOLDS)
+    ap.add_argument("--frame", type=Path, default=FRAME)
+    ap.add_argument("--replay", type=Path, default=EVALUATION / "operator_cell.json",
+                    help="CELL operator run written by operator_runs.py")
+    ap.add_argument("--gold-dir", type=Path, default=GOLD)
+    ap.add_argument("--cell-oof", type=Path, default=CELL_OOF)
     args = ap.parse_args()
-    folds = json.loads(FOLDS.read_text())
-    fold_of = {r["sample"]: int(r["fold_he_safe"]) for r in folds["per_sample"]}
-    replay = json.loads((EVALUATION / "operator_cell.json").read_text())
+    FOLDS, FRAME, GOLD, CELL_OOF = args.folds, args.frame, args.gold_dir, args.cell_oof
+    if args.output.resolve().is_relative_to(PREDICTION_ROOT.resolve()):
+        raise ValueError("write evaluation outputs outside the release tree")
+    folds, fold_of = read_folds(FOLDS)
+    replay = read_replay(args.replay, fold_of)
     report = transfer_counts(replay, fold_of)
     report["fold_source"] = str(FOLDS)
     report["fold_assignment_sha256"] = folds.get("assignment_sha256")

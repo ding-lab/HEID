@@ -78,13 +78,13 @@ def hash_frame(frame: pd.DataFrame) -> str:
 def git_state() -> dict:
     try:
         sha = subprocess.check_output(
-            ["git", "-C", str(HE_PRED), "rev-parse", "HEAD"],
+            ["git", "-C", str(MODULE_ROOT), "rev-parse", "HEAD"],
             stderr=subprocess.DEVNULL,
             text=True,
         ).strip()
         dirty = bool(
             subprocess.check_output(
-                ["git", "-C", str(HE_PRED), "status", "--porcelain"],
+                ["git", "-C", str(MODULE_ROOT), "status", "--porcelain"],
                 stderr=subprocess.DEVNULL,
                 text=True,
             ).strip()
@@ -130,7 +130,7 @@ def load_data() -> tuple[pd.DataFrame, np.ndarray, dict]:
     frames: list[pd.DataFrame] = []
     features: list[np.ndarray] = []
     input_rows: list[dict] = []
-    cursor = 0
+    offset = 0
     for row in slides.itertuples(index=False):
         unit = str(row.unit_id)
         field = str(row.field)
@@ -159,10 +159,10 @@ def load_data() -> tuple[pd.DataFrame, np.ndarray, dict]:
         frame = label.copy()
         frame["xenium_run"] = str(row.xenium_run_folder)
         frame["patient"] = str(row.patient)
-        frame["_full"] = np.arange(cursor, cursor + len(frame), dtype=np.int64)
+        frame["_full"] = np.arange(offset, offset + len(frame), dtype=np.int64)
         frames.append(frame)
         features.append(feat[rows])
-        cursor += len(frame)
+        offset += len(frame)
         input_rows.append(
             {
                 "unit_id": unit,
@@ -929,7 +929,7 @@ def run_full(args: argparse.Namespace) -> None:
             "threshold": threshold,
             "auroc": safe_metric(roc_auc_score, yc, pc),
             "auprc": safe_metric(average_precision_score, yc, pc),
-            "note": "optimistic in-sample calibration diagnostic, not performance evidence",
+            "note": "in-sample calibration diagnostic",
         }
     arch = {
         "class": (
@@ -960,10 +960,7 @@ def run_full(args: argparse.Namespace) -> None:
         "thresholds_oof_fold_median_provenance": oof_threshold_median,
         "postprocessing": {
             "min_component_tiles": 1,
-            "selection": (
-                "cross-fitted nested k in {1,2,3} reduced macro Dice; "
-                "no minimum-size filter retained"
-            ),
+            "selection": "no minimum component-size filter",
         },
         "recipe": {
             "seed": args.seed,

@@ -1,0 +1,160 @@
+{
+  "schema_version": "he_boundary_prediction.v1.experiment.v1",
+  "experiment_id": "training_control",
+  "task": {
+    "endpoint": "aligned_he_to_binary_tumor_territory_mask",
+    "positive_class": "gen11_tumor_mask",
+    "negative_class": "tissue_mask_and_not_tumor_mask",
+    "ignore_class": "outside_valid_tissue_or_aligned_he_canvas",
+    "claim_boundary": "agreement_with_xenium_derived_gen11_silver_labels"
+  },
+  "cohort": {
+    "folds": 5,
+    "group": "patient",
+    "stratify": "cancer",
+    "low_quality_alignment_policy": "exclude_a4_denylist"
+  },
+  "label_transfer": {
+    "coordinate_source": "a4_cell_table_x_px_y_px",
+    "cell_type_seed_source": "gen11_boundary_csv_cell_type_joined_by_cell_id",
+    "he_mpp_um": 0.2125,
+    "grid_resolution_um": 10.0,
+    "margin_um": 100.0,
+    "tissue_sigma_px": 10.0,
+    "tissue_density_threshold": 0.015,
+    "tissue_closing_radius_px": 10,
+    "region_sigma_px": 5.0,
+    "region_relative_density_threshold": 0.1,
+    "region_closing_radius_px": 5,
+    "region_opening_radius_px": 3,
+    "minimum_region_area_px": 500,
+    "minimum_normal_area_px": 3000,
+    "maximum_hole_area_px": 50000,
+    "cancer_overrides": {
+      "PDAC": {
+        "region_sigma_px": 3.0,
+        "region_relative_density_threshold": 0.03,
+        "region_closing_radius_px": 2,
+        "minimum_region_area_px": 100
+      }
+    },
+    "sdf_sign": "positive_outside_negative_inside",
+    "classification_target": "tumor_mask_within_valid_tissue",
+    "regression_target": "gen11_tumor_mask_sdf_um",
+    "interface_sdf_role": "diagnostic_only_and_masked_when_interface_empty"
+  },
+  "preprocessing": {
+    "image": "aligned_he_ome_tiff_level0",
+    "axes": "YXS",
+    "color_space": "native_rgb",
+    "physical_coordinate_origin": "xenium_canvas_upper_left_pixel_edge",
+    "patch_fov_um": 2560.0,
+    "model_input_shape_yx": [
+      1024,
+      1024
+    ],
+    "model_input_mpp_um": 2.5,
+    "label_shape_yx": [
+      256,
+      256
+    ],
+    "label_mpp_um": 10.0,
+    "blank_policy": "ignore_outside_valid_tissue_and_white_warp_background",
+    "training_arms": [
+      "native_rgb",
+      "training_fold_only_stain_augmentation"
+    ],
+    "test_time_normalization": "none",
+    "arm_selection": "inner_patient_split_only"
+  },
+  "sampling": {
+    "unit": "physical_tile",
+    "patient_equal_epoch_weighting": true,
+    "tile_strata": [
+      "boundary",
+      "tumor_interior",
+      "normal_tissue"
+    ],
+    "tile_stratum_weights": [
+      0.4,
+      0.3,
+      0.3
+    ],
+    "boundary_candidate_um": 250.0,
+    "minimum_valid_tissue_fraction": 0.5
+  },
+  "model": {
+    "primary_endpoint": "direct_dense_rgb_segmentation",
+    "baseline_architecture": "multiscale_rgb_encoder_decoder",
+    "candidate_upgrade": "pathology_foundation_feature_fusion",
+    "reference_cell_baseline": "v4_10class_stainaug_tumor_probability_to_gen11_rasterizer",
+    "outputs": [
+      "tumor_logit",
+      "clipped_sdf_um"
+    ],
+    "sdf_clip_um": 500.0,
+    "foundation_candidates": [
+      "v4_uni2_phikon_region_context",
+      "virchow2_rgb_feature_fusion"
+    ],
+    "candidate_selection": "inner_patient_split_only"
+  },
+  "training": {
+    "seed": 24073,
+    "optimizer": "adamw",
+    "epochs": 40,
+    "batch_size_per_gpu": 4,
+    "gradient_accumulation_steps": 4,
+    "learning_rate": 0.0001,
+    "weight_decay": 0.0001,
+    "warmup_fraction": 0.05,
+    "scheduler": "cosine",
+    "amp_dtype": "bfloat16",
+    "gradient_clip_norm": 1.0,
+    "loss": {
+      "masked_cross_entropy": 1.0,
+      "soft_dice": 1.0,
+      "masked_sdf_smooth_l1": 0.25
+    },
+    "outer_test_checkpoint_selection": false,
+    "replicate": 0
+  },
+  "evaluation": {
+    "decision_threshold_selection": "inner_patient_split_only",
+    "primary": [
+      "patient_equal_tumor_dice",
+      "patient_equal_tumor_iou"
+    ],
+    "boundary": [
+      "surface_dice_20um",
+      "surface_dice_50um",
+      "assd_um",
+      "hd95_um"
+    ],
+    "area": [
+      "tumor_fraction_absolute_error",
+      "tumor_area_bias_mm2"
+    ],
+    "report_by": [
+      "patient",
+      "sample",
+      "cancer",
+      "fold"
+    ],
+    "uncertainty": "cancer_stratified_patient_bootstrap",
+    "outer_fold_rule": "strict_own_fold_prediction"
+  },
+  "outputs": {
+    "source_manifest": "data/manifests/source_cohort.csv",
+    "data_contract": "data/manifests/data_contract.json",
+    "labels": "${PROJECTS_ROOT}/tb/he_prediction/data/labels",
+    "label_manifest": "data/manifests/labels.csv",
+    "label_dataset_contract": "data/manifests/label_dataset.json",
+    "models": "outputs/control/models",
+    "predictions": "outputs/control/predictions",
+    "results": "outputs/control/results",
+    "manifests": "outputs/control/manifests",
+    "logs": "outputs/logs/control",
+    "scratch": "scratch/control"
+  }
+}

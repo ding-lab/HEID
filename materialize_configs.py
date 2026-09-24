@@ -1,7 +1,5 @@
 #!/usr/bin/env python3
 from __future__ import annotations
-import os
-PROJECTS_ROOT = os.environ.get("PROJECTS_ROOT", "/data/heid")
 
 import argparse
 import sys
@@ -9,6 +7,7 @@ from pathlib import Path
 
 EXTENSIONS = {".json", ".csv", ".tsv"}
 PLACEHOLDERS = ("${PROJECTS_ROOT}", "${RELEASE_ROOT}")
+SKIPPED_DIRECTORIES = {".git", ".venv", "venv", "__pycache__"}
 
 
 def main() -> int:
@@ -22,7 +21,7 @@ def main() -> int:
     mapping = {"${PROJECTS_ROOT}": str(projects_root), "${RELEASE_ROOT}": str(release_root)}
     changed = 0
     for path in sorted(release_root.rglob("*")):
-        if not path.is_file() or path.suffix not in EXTENSIONS or ".git" in path.parts:
+        if not path.is_file() or path.suffix not in EXTENSIONS or SKIPPED_DIRECTORIES & set(path.parts):
             continue
         try:
             text = path.read_text(encoding="utf-8")

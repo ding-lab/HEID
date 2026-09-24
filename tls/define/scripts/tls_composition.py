@@ -1,10 +1,8 @@
 import paths as P
 import os
-PROJECTS_ROOT = os.environ.get("PROJECTS_ROOT", "/data/heid")
 import pandas as pd, numpy as np, glob, os, json
 
 ROOT = str(P.WORKSPACE)
-X1000 = str(P.PROJECTS)
 TLS_OUTPUT_5K = str(P.ACCEPTED / "outputs/5k")
 TUMOR_SIDE_5K = str(P.SIDE_ROOT / "5k/outputs")
 OUT = str(P.ACCEPTED / "outputs/_tls_composition.csv")

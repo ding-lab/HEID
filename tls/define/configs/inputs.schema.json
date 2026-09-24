@@ -1,0 +1,169 @@
+{
+  "schema": "heid.inputs.v1",
+  "branch": "tls/define",
+  "root": "${PROJECTS_ROOT}/tls/define (TLS_DEFINE_WORKSPACE)",
+  "order": [
+    "scripts/precompute_scores.py <sample>",
+    "scripts/precompute_gc_scores.py <sample>",
+    "scripts/agg_cluster.py <panel> <cancer> <sample> T",
+    "scripts/agg_cluster.py <panel> <cancer> <sample> MAC",
+    "scripts/tls_maturity.py <panel> <cancer> <sample>",
+    "scripts/agg_only.py <panel> <cancer> <sample> T",
+    "scripts/agg_only.py <panel> <cancer> <sample> MAC",
+    "scripts/assemble.py <sample>",
+    "scripts/tls_composition.py",
+    "scripts/build_regions.py <panel> <cancer> <sample>"
+  ],
+  "inputs": [
+    {
+      "name": "cells",
+      "path": "cells/<sample>.parquet",
+      "env": "TLS_H5AD_DIR",
+      "columns": {
+        "cell_id": "string",
+        "cell_type": "string",
+        "x_centroid": "float, slide micrometres",
+        "y_centroid": "float, slide micrometres",
+        "<marker>": "normalized marker columns (BCL6, AICDA, MKI67 and the program markers)"
+      },
+      "consumed_by": [
+        "scripts/agg_cluster.py",
+        "scripts/tls_maturity.py",
+        "scripts/agg_only.py",
+        "scripts/assemble.py",
+        "scripts/build_regions.py"
+      ]
+    },
+    {
+      "name": "expression",
+      "path": "expression.h5ad",
+      "env": "TLS_EXPRESSION_H5AD",
+      "format": "HDF5 AnnData: CSR X (normalized), obs/barcode, categorical obs/cell_type, var index of gene names",
+      "consumed_by": [
+        "scripts/precompute_scores.py",
+        "scripts/precompute_gc_scores.py",
+        "scripts/tls_maturity.py"
+      ]
+    },
+    {
+      "name": "expression_rows",
+      "path": "expression_rows.tsv",
+      "env": "TLS_EXPRESSION_INDEX",
+      "columns": {
+        "sample": "string",
+        "row_start": "integer, inclusive",
+        "row_end": "integer, exclusive"
+      },
+      "consumed_by": [
+        "scripts/precompute_scores.py",
+        "scripts/precompute_gc_scores.py"
+      ]
+    },
+    {
+      "name": "program_scores",
+      "path": "program_scores/<sample>.parquet",
+      "env": "TLS_SCORE_DIR",
+      "produced_by": "scripts/precompute_scores.py",
+      "columns": {
+        "cell_id": "string",
+        "cell_type": "string",
+        "score_B": "float",
+        "score_T": "float",
+        "score_DC": "float",
+        "scoring_method": "ulm_pertype"
+      }
+    },
+    {
+      "name": "gc_scores",
+      "path": "gc_scores/<sample>.parquet",
+      "env": "TLS_GC_DIR",
+      "produced_by": "scripts/precompute_gc_scores.py",
+      "columns": {
+        "cell_id": "string",
+        "gc_score": "float, B cells only",
+        "scoring_method": "equal to configs/gc_thresholds.json scoring_method"
+      }
+    },
+    {
+      "name": "tumor_zones",
+      "path": "tumor_zones/<panel>/outputs/<cancer>/<sample>/<sample>_boundary_zones.csv",
+      "env": "TLS_BOUNDARY_ZONES",
+      "columns": {
+        "cell_id": "string",
+        "tumor_region": "string",
+        "boundary_zone": "string"
+      },
+      "consumed_by": [
+        "scripts/tls_maturity.py"
+      ]
+    },
+    {
+      "name": "tumor_sides",
+      "path": "tumor_sides/5k/outputs/<cancer>/<sample>/<sample>_boundary_distance.csv",
+      "env": "TLS_BOUNDARY_SIDES",
+      "produced_by": "tb/boundary/scripts/boundary_distance.py",
+      "columns": {
+        "cell_id": "string",
+        "side": "Tumor or Normal"
+      },
+      "consumed_by": [
+        "scripts/assemble.py",
+        "scripts/tls_composition.py"
+      ]
+    },
+    {
+      "name": "cell_types",
+      "path": "cell_types/",
+      "env": "TLS_CELL_TYPES",
+      "columns": {
+        "cell_id": "string",
+        "cell_type": "string"
+      },
+      "optional": true,
+      "consumed_by": [
+        "scripts/tls_maturity.py"
+      ]
+    },
+    {
+      "name": "cell_atlas",
+      "path": "cell_atlas/5k/allsolidtumor5k.cells.csv and cell_atlas/477/allsolidtumor.cells.csv",
+      "format": "comma-separated cohort cell table",
+      "columns": {
+        "dataset": "sample identifier",
+        "barcode": "'<cell_id>_<sample>'",
+        "cell_type": "string"
+      },
+      "optional": true,
+      "role": "read for a sample that has no file under cell_types/; the panel's own table first, then the other panel's",
+      "consumed_by": [
+        "scripts/tls_maturity.py"
+      ]
+    },
+    {
+      "name": "state_reference",
+      "path": "state_reference.csv",
+      "env": "TLS_STATE_REFERENCE",
+      "columns": {
+        "<index>": "source reference region key",
+        "TLS_State": "one of Mature TLS, FDC-deficient TLS, Premature TLS, Early TLS"
+      },
+      "optional": true,
+      "consumed_by": [
+        "scripts/tls_maturity.py"
+      ]
+    }
+  ],
+  "arguments": {
+    "precompute_scores.py": "<sample>",
+    "precompute_gc_scores.py": "<sample>",
+    "agg_cluster.py": "<dataset> <cancer> <sample> T|MAC",
+    "tls_maturity.py": "<dataset> <cancer> <sample>",
+    "agg_only.py": "<dataset> <cancer> <sample> [T|MAC]",
+    "assemble.py": "[<sample>]",
+    "build_regions.py": "<dataset> <cancer> <sample>"
+  },
+  "outputs": {
+    "detector": "accepted/outputs/<panel>/<cancer>/<sample>/<sample>_tls.csv (cell_id, tls_region, in_tls_core, TLS_State, ...) and <sample>_tls_meta.json",
+    "reporter": "outputs/reporting/tls/<cancer>/<sample>/<sample>_tls.csv (tls_region_halo50/100/150) and <sample>_tls_composition.csv"
+  }
+}

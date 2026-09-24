@@ -1,0 +1,12 @@
+{
+  "grid": {
+    "resolution_um": 10,
+    "canvas_basis_891": "G_withdrawn"
+  },
+  "tls_linking": {
+    "accept_link_iff_both": [
+      "canvas centroid distance <= 150 um",
+      "mutual nearest neighbour: i's nearest core on the next layer is j AND j's nearest core on the previous layer is i"
+    ]
+  }
+}

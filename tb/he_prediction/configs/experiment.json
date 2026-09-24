@@ -1,13 +1,8 @@
 {
   "cohort": {
-    "contract": "a4_clean177",
     "folds": 5,
     "group": "patient",
     "low_quality_alignment_policy": "exclude_failed_alignment_sections",
-    "n_cancers": 10,
-    "n_cell_rows": 42359935,
-    "n_patients": 184,
-    "n_samples": 190,
     "stratify": "cancer"
   },
   "evaluation": {
@@ -36,19 +31,6 @@
     "uncertainty": "cancer_stratified_patient_bootstrap"
   },
   "experiment_id": "tb_territory_prediction",
-  "inputs": {
-    "a4_data_contract": "${PROJECTS_ROOT}/cell/input_attestations/data_contract.json",
-    "a4_feature_manifest": "${PROJECTS_ROOT}/cell/input_attestations/feature_inputs_fold0.json",
-    "boundary_generation": "gen11",
-    "boundary_log_root": "${PROJECTS_ROOT}/tb/boundary/logs",
-    "boundary_root": "${PROJECTS_ROOT}/tb/boundary",
-    "boundary_source": "${RELEASE_ROOT}/tb/boundary/scripts/boundary_distance.py",
-    "cell_table_root": "${PROJECTS_ROOT}/cell/cell_tables",
-    "v4_auc_result": "${PROJECTS_ROOT}/cell/input_attestations/cell_auc.json",
-    "v4_split": "${PROJECTS_ROOT}/cell/input_attestations/reference_split.json",
-    "v4_training_source": "${PROJECTS_ROOT}/cell/input_attestations/cell_training_source.py",
-    "v4_verified_result": "${PROJECTS_ROOT}/cell/input_attestations/cell_verification.json"
-  },
   "label_transfer": {
     "cancer_overrides": {
       "PDAC": {

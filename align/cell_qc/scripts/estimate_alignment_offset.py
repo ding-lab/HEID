@@ -29,7 +29,7 @@ APPLICABLE_FRAC = 0.80
 
 PROJ = Path(os.environ.get("PROJECTS_ROOT", "/data/heid"))
 ALIGNED_ROOT = PROJ / "align/registered_he"
-XENIUM_ROOT = PROJ / "data/X1000/Xenium"
+XENIUM_ROOT = PROJ / "align/xenium"
 
 _G = {}
 

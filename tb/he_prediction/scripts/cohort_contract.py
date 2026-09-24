@@ -6,7 +6,9 @@ from typing import Any
 
 import pandas as pd
 
-CLEAN177_MANIFEST = "source_cohort_reference.csv"
+from experiment_config import REFERENCE, cohort_size
+
+REFERENCE_MANIFEST = "source_cohort_reference.csv"
 REQUIRED_COLUMNS = frozenset({"sample", "patient", "cancer", "fold"})
 
 
@@ -28,12 +30,13 @@ def validate_working_cohort(
     if straddling:
         raise ValueError(f"patients appear in more than one fold: {sorted(straddling)}")
 
-    reference_path = Path(manifest_path).parent / CLEAN177_MANIFEST
+    reference_path = Path(manifest_path).parent / REFERENCE_MANIFEST
     if not reference_path.is_file():
         raise ValueError(f"missing the reference provenance manifest: {reference_path}")
     reference = pd.read_csv(reference_path, keep_default_na=False)
-    if len(reference) != 177 or reference["sample"].nunique() != 177:
-        raise ValueError("reference provenance manifest is not 177 unique samples")
+    expected = cohort_size(REFERENCE)["n_samples"]
+    if len(reference) != expected or reference["sample"].nunique() != expected:
+        raise ValueError(f"reference provenance manifest is not {expected} unique samples")
 
     reference_rows = {str(row["sample"]): row for row in reference.to_dict("records")}
     outside = sorted(set(manifest["sample"].astype(str)) - set(reference_rows))
@@ -57,4 +60,4 @@ def validate_working_cohort(
     }
 
 
-__all__ = ["validate_working_cohort", "CLEAN177_MANIFEST"]
+__all__ = ["validate_working_cohort", "REFERENCE_MANIFEST"]

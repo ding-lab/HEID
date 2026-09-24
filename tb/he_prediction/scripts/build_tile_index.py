@@ -15,6 +15,7 @@ from typing import Any, Mapping, Sequence
 import numpy as np
 import pandas as pd
 
+from experiment_config import load_experiment
 from he_mask_dataset import sha256_file, validate_patient_fold_contract
 
 
@@ -447,7 +448,7 @@ def main() -> None:
     source_path = args.source_manifest.resolve()
     label_manifest_path = args.label_manifest.resolve()
     label_contract_path = args.label_dataset_contract.resolve()
-    config = json.loads(config_path.read_text(encoding="utf-8"))
+    config = load_experiment(config_path)
     source = pd.read_csv(source_path)
     validate_patient_fold_contract(source)
     label_contract = json.loads(

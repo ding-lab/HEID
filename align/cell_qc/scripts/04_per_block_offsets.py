@@ -153,7 +153,7 @@ def main():
                        "max_affine_resid_p90_um": a.max_affine_p90,
                        "min_gradient_um_per_mm": a.min_grad,
                        "max_gradient_um_per_mm": a.max_grad,
-                       "note": "provisional, set from the AL008B1 block separation"},
+                       "note": "block-model acceptance thresholds"},
         "blocks": blocks,
         "n_blocks_kept": len(kept),
         "coverage": {

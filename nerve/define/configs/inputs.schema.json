@@ -1,0 +1,70 @@
+{
+  "schema": "heid.inputs.v1",
+  "branch": "nerve/define",
+  "root": "${PROJECTS_ROOT}/nerve/define",
+  "order": [
+    "scripts/schwann_clusters.py <panel> <cancer> <sample>",
+    "scripts/schwann_clusters_expression.py <panel> <cancer> <sample>"
+  ],
+  "inputs": [
+    {
+      "name": "xenium_cells",
+      "path": "xenium/<panel>/<cancer dir>/<sample>/cells.parquet",
+      "alternatives": [
+        "cells.csv.gz",
+        "cells.csv"
+      ],
+      "columns": {
+        "cell_id": "string",
+        "x_centroid": "float, micrometres",
+        "y_centroid": "float, micrometres"
+      },
+      "consumed_by": [
+        "scripts/schwann_clusters.py",
+        "scripts/schwann_clusters_expression.py"
+      ]
+    },
+    {
+      "name": "cell_feature_matrix",
+      "path": "xenium/<panel>/<cancer dir>/<sample>/cell_feature_matrix.h5",
+      "format": "10x HDF5: matrix/features/name, matrix/barcodes, matrix/data, matrix/indices, matrix/indptr",
+      "required_when": "the section has at least five candidate Schwann cells",
+      "consumed_by": [
+        "scripts/schwann_clusters.py",
+        "scripts/schwann_clusters_expression.py"
+      ]
+    },
+    {
+      "name": "annotations_5k",
+      "path": "annotations/5k/<sample>.csv",
+      "columns": {
+        "cell_id": "string",
+        "cell_type": "string; the Schwann label is 'Schwann' (5k) or 'Glial' (477), tumor cells begin with 'Tumor'"
+      }
+    },
+    {
+      "name": "annotations_477",
+      "path": "annotations/477/<cancer>/<sample>.csv",
+      "columns": {
+        "cell_id": "string",
+        "cell_type": "string; see annotations_5k"
+      }
+    }
+  ],
+  "arguments": {
+    "schwann_clusters.py": "<panel 5k|477> <cancer PRAD|PDAC|MCRC|CRC|CHOL> <sample>",
+    "schwann_clusters_expression.py": "<panel> <cancer> <sample>"
+  },
+  "cancer_dir": {
+    "PRAD": "PRAD",
+    "PDAC": "PDAC",
+    "MCRC": "CRC",
+    "CRC": "CRC",
+    "CHOL": "CHOL"
+  },
+  "outputs": {
+    "root": "RELEASE_ROOT/nerve/define/outputs/<output group>/",
+    "data": "data/<sample>_cells.csv and data/<sample>_cluster_stats.csv (includes n_tumor_le50_legacy)",
+    "figures": "figures/"
+  }
+}
