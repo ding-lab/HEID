@@ -26,7 +26,7 @@ PRED_DIR = os.path.join(INFER, COHORT, "data", "predictions")
 
 PC = Path(__file__).resolve().parents[2] / "cell"
 MODELS = Path(os.environ.get("PROJECTS_ROOT", "/data/heid")) / "cell/outputs/models"
-HEAD_DIR = Path(os.environ.get("THREED_CELL_HEAD_DIR", str(MODELS / "head/cls_sigma3_all_schwann")))
+HEAD_DIR = Path(os.environ.get("THREED_CELL_HEAD_DIR", str(MODELS / "head/cls_sigma3")))
 ADAPTER_DIR = MODELS / "adapters/raw_rgb"
 
 sys.path.insert(0, str(PC / "scripts"))
@@ -264,7 +264,7 @@ def main() -> None:
     counts = frame.loc[scored, "pred_class_name"].value_counts()
     meta = {
         "slide": args.slide, "cohort": COHORT, "n_cells": int(n), "n_scored": int(scored.sum()),
-        "model": f"Cell reference head cls_sigma3 (all-Schwann identity objective), single fold {FOLD}",
+        "model": f"Cell classifier head cls_sigma3, single fold {FOLD}",
         "fold_rule": "a single fold, the fold of the reported metric",
         "heads": str(HEAD_DIR), "adapters": str(ADAPTER_DIR),
         "decision_layer": "not applied",

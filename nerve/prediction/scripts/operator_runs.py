@@ -23,7 +23,7 @@ PREDICTION_ROOT = _RELEASE / "nerve/prediction"
 EVALUATION = PREDICTION_ROOT / "data/evaluation"
 GOLD = INPUT_ROOT / "nerve/prediction/gold"
 MASKS = INPUT_ROOT / "nerve/prediction/masks"
-CELL_OOF = _RELEASE / "cell/outputs/oof/cls_sigma3_all_schwann"
+CELL_OOF = _RELEASE / "cell/outputs/oof/cls_sigma3"
 OUTPUTS = INPUT_ROOT / "nerve/prediction/outputs"
 EXPECTED_EXPERIMENT_ID = None
 sys.path.insert(0, str(PREDICTION_ROOT / "scripts"))
@@ -31,8 +31,7 @@ import region_operator as OP
 from evaluation_inputs import check_probability_source, read_frame
 
 IOU_THR = 0.10
-TARGET_POS_FRAC = [0.001, 0.002, 0.003, 0.00434, 0.006, 0.008, 0.012, 0.018,
-                   0.025, 0.035, 0.05]
+SCHWANN_THRESHOLD = 0.6
 MAX_SLIDE_POS_FRAC = 0.10
 
 
@@ -99,7 +98,7 @@ def load_probs(arm, sample, cell_ids):
                "n_covered": int(np.isfinite(p).sum())}
 
 
-def calibrate_taus(arm, rows):
+def threshold_summary(arm, rows, tau):
     pool = []
     for r in rows:
         g = pd.read_parquet(GOLD / f"{r['sample']}.parquet", columns=["cell_id", "x_um"])
@@ -110,20 +109,10 @@ def calibrate_taus(arm, rows):
             continue
         pool.append(p[np.isfinite(p)])
     if not pool:
-        return [], {"error": "no probabilities in frame"}
+        return {"error": "no probabilities in frame"}
     allp = np.concatenate(pool)
-    taus, table = [], []
-    for f in TARGET_POS_FRAC:
-        tau = float(np.quantile(allp, 1.0 - f))
-        taus.append(tau)
-        table.append({"target_pos_frac": f, "tau": round(tau, 8),
-                      "achieved_pos_frac": round(float((allp > tau).mean()), 6)})
-    meta = {"n_cells_pooled": int(len(allp)),
-            "prob_quantiles": {q: round(float(np.quantile(allp, q)), 8)
-                               for q in (0.5, 0.9, 0.99, 0.999, 0.9999)},
-            "prob_max": round(float(allp.max()), 8),
-            "grid": table}
-    return taus, meta
+    return {"threshold": tau, "n_cells_pooled": int(len(allp)),
+            "pooled_pos_frac": round(float((allp > tau).mean()), 6)}
 
 
 def process(job):
@@ -180,8 +169,8 @@ def process(job):
             "max": float(np.nanmax(p)) if finite.any() else None,
         }
         pf = np.where(finite, p, -1.0)
-        for frac, tau in zip(TARGET_POS_FRAC, taus):
-            key = f"posfrac_{frac:.5f}"
+        for tau in taus:
+            key = f"tau_{tau:.3f}"
             sel = pf > tau
             slide_frac = float(sel.mean())
             if slide_frac > MAX_SLIDE_POS_FRAC:
@@ -249,9 +238,15 @@ def main() -> int:
                     help="Cell OOF root holding fold*/<sample>.npz of the head named by the frame")
     ap.add_argument("--output", type=Path, default=None,
                     help="default <PROJECTS_ROOT>/nerve/prediction/outputs/operator_<arm>.json")
+    ap.add_argument("--tau", type=float, default=SCHWANN_THRESHOLD,
+                    help="Schwann probability threshold; a cell is a candidate when its probability exceeds it")
+    ap.add_argument("--no-tracts", action="store_true",
+                    help="score the operator with the graph-linked tract path disabled")
     args = ap.parse_args()
     if args.workers < 1:
         ap.error("--workers must be positive")
+    if args.no_tracts:
+        OP.detect_tracts = lambda *a, **k: []
 
     frame = read_frame(args.frame)
     source = frame.get("probability_source") or {}
@@ -263,13 +258,12 @@ def main() -> int:
 
     taus, tau_meta = ([], None)
     if args.arm == "CELL":
-        t0 = time.time()
-        taus, tau_meta = calibrate_taus(args.arm, rows)
-        print(f"tau calibration ({time.time()-t0:.0f}s): "
-              f"{json.dumps(tau_meta['grid'])}", flush=True)
-        if not taus:
+        tau_meta = threshold_summary(args.arm, rows, args.tau)
+        print(f"threshold: {json.dumps(tau_meta)}", flush=True)
+        if "error" in tau_meta:
             print("no probabilities -- aborting", flush=True)
             return 6
+        taus = [args.tau]
 
     jobs = [(args.arm, r, taus) for r in rows]
     with Pool(args.workers, initializer=configure_inputs,
@@ -285,9 +279,9 @@ def main() -> int:
         "operator": "gene-blind region_operator.py; expression-dependent small-core rescue is unavailable",
         "metric": f"greedy IoU over cell-id sets, threshold {IOU_THR}, pooled counts, "
                   f"zero-gold slides INCLUDED",
-        "operating_point_axis": "predicted-positive fraction (raw tau does not transfer "
-                                "between arms; see TARGET_POS_FRAC in this script)",
-        "tau_calibration": tau_meta,
+        "operating_point": "fixed Schwann probability threshold; candidates have probability > threshold",
+        "threshold": tau_meta,
+        "tract_path": "disabled" if args.no_tracts else "enabled",
         "max_slide_pos_frac": MAX_SLIDE_POS_FRAC,
         "pooled": pooled,
         "n_slides_scored": len(results),
@@ -296,18 +290,7 @@ def main() -> int:
     }
     if args.arm == "CELL":
         report["probability_source"] = dict(source, cell_oof=str(CELL_OOF))
-        f1s = {k: pooled[k][f"iou>={IOU_THR:.2f}"]["f1"] for k in keys}
-        best = max(f1s, key=f1s.get)
-        ends = (f"posfrac_{TARGET_POS_FRAC[0]:.5f}", f"posfrac_{TARGET_POS_FRAC[-1]:.5f}")
-        report["best_operating_point"] = best
-        report["best_f1"] = f1s[best]
-        report["best_at_grid_endpoint"] = best in ends
-        report["best_adjacent_to_degenerate_guard"] = bool(
-            pooled[best]["n_slides_skipped_degenerate"] > 0)
-        report["f1_range_over_grid"] = round(max(f1s.values()) - min(f1s.values()), 6)
-        ng = {k: pooled[k][f"iou>={IOU_THR:.2f}"]["n_gold"] for k in keys}
-        report["n_gold_constant_across_tau"] = len(set(ng.values())) == 1
-        report["n_gold_values"] = sorted(set(ng.values()))
+        report["f1"] = pooled[keys[0]][f"iou>={IOU_THR:.2f}"]["f1"]
 
     out = args.output or OUTPUTS / f"operator_{args.arm.lower()}.json"
     if out.resolve().is_relative_to(PREDICTION_ROOT.resolve()):

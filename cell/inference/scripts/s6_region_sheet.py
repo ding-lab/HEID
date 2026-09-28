@@ -40,7 +40,7 @@ sys.path.insert(0, str(_RELEASE / "cell/inference/scripts"))
 import slide_canvas as L
 
 PANEL = "5k"
-MIN_CONFIDENCE = os.environ.get("NERVE_CONFIDENCE", "high")
+MIN_CONFIDENCE = os.environ.get("NERVE_CONFIDENCE", "all")
 C_SCHWANN = "#00B0F0"
 C_REGION = os.environ.get("CELL_OUTLINE_COLOR", "#00B0F0")
 

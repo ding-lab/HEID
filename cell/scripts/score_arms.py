@@ -426,8 +426,8 @@ def main() -> int:
     parser.add_argument("--arms", nargs="+", required=True,
                         help="NAME or NAME=OOF_ROOT; a bare NAME reads <oof-root>/NAME/fold<k>/")
     parser.add_argument("--oof-root", type=Path, default=OOF_ROOT)
-    parser.add_argument("--ruler", choices=("all", "region"), required=True,
-                        help="all: every scorable cell; region: drop identity_excluded rows for every arm")
+    parser.add_argument("--ruler", choices=("region",), default="region",
+                        help="region: drop identity_excluded rows for every arm")
     parser.add_argument("--exclusion-labels", type=Path, default=EXCLUSION_LABELS)
     parser.add_argument("--expect-excluded", type=int, default=None)
     parser.add_argument("--expect-schwann-remaining", type=int, default=None)

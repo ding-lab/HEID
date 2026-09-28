@@ -235,7 +235,6 @@
   "scripts/adapter_fingerprints.py",
   "scripts/train_fold.py",
   "scripts/exclusion_dryrun.py",
-  "scripts/verify_fold.py",
   "scripts/score_arms.py"
  ],
  "inference_order": [

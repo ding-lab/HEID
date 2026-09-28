@@ -40,11 +40,10 @@ from region_order import serpentine_order
 from region_ops import regions_for
 from out_paths import slide_dir, summary_path, all_projects
 
-TARGET_POS_FRAC = 0.003
 TAU_ABS = 0.60
 
 
-MIN_CONFIDENCE = os.environ.get("NERVE_CONFIDENCE", "high")
+MIN_CONFIDENCE = os.environ.get("NERVE_CONFIDENCE", "all")
 PANEL = "5k"
 SCHWANN_CLASS = "Schwann"
 TUMOR_CLASS = "Tumor"
@@ -153,8 +152,7 @@ def tumour_territory(pred: pd.DataFrame):
 def tau_label(tau: float) -> str:
     if os.environ.get("CELL_TAU_FORCE"):
         return f"forced tau {tau:.3f}"
-    return (f"absolute tau {tau:.3f}" if os.environ.get("CELL_TAU_ABS_MODE")
-            else f"posfrac {TARGET_POS_FRAC} (tau {tau:.4f})")
+    return f"absolute tau {tau:.3f}"
 
 
 def head_identity_of(slides: list[str]) -> str | None:
@@ -186,98 +184,60 @@ def calibrate_tau(slides: list[str], project: str) -> dict:
         return {"mode": "forced", "tau": tau, "rule": f"forced by CELL_TAU_FORCE={forced}",
                 "project_id": project, "n_slides_pooled": None}
 
-    requested_mode = "absolute" if os.environ.get("CELL_TAU_ABS_MODE") else "quantile"
+    requested_tau = float(os.environ.get("CELL_TAU_ABS", TAU_ABS))
     TAU_FILE = tau_file(project)
     if TAU_FILE.exists():
         cached = json.loads(TAU_FILE.read_text())
-        cached_mode = cached.get("mode")
-        if cached_mode is None:
-            absolute_rule = cached.get("rule") in (
-                "explicit absolute probability threshold",
-            )
-            if "target_pos_frac" in cached and not absolute_rule:
-                cached_mode = "quantile"
-            elif "target_pos_frac" not in cached and absolute_rule:
-                cached_mode = "absolute"
-        if cached_mode not in ("quantile", "absolute"):
-            raise SystemExit(f"FATAL: {TAU_FILE} does not identify an unambiguous threshold mode.")
-        if cached_mode != requested_mode:
+        if cached.get("mode") != "absolute":
             raise SystemExit(
-                f"FATAL: cached threshold mode is {cached_mode}, but this run requests {requested_mode}. "
-                "Use a separate output workspace or explicitly recalibrate its threshold cache."
+                f"FATAL: cached threshold mode is {cached.get('mode')!r}, but only 'absolute' mode is supported. "
+                f"Delete {TAU_FILE} and rewrite the threshold record."
             )
-        if requested_mode == "absolute":
-            requested_tau = float(os.environ.get("CELL_TAU_ABS", TAU_ABS))
-            if float(cached["tau"]) != requested_tau:
-                raise SystemExit(
-                    f"FATAL: cached absolute threshold is {cached['tau']}, but this run requests {requested_tau}. "
-                    "Use a separate output workspace or explicitly recalibrate its threshold cache."
-                )
+        if float(cached["tau"]) != requested_tau:
+            raise SystemExit(
+                f"FATAL: cached absolute threshold is {cached['tau']}, but this run requests {requested_tau}. "
+                "Use a separate output workspace or explicitly rewrite its threshold record."
+            )
         cached_head = cached.get("head_experiment_id")
         if cached_head is not None and head_id is not None and cached_head != head_id:
             raise SystemExit(
-                f"FATAL: cached threshold was calibrated on predictions of Cell head {cached_head}, "
+                f"FATAL: cached threshold record belongs to predictions of Cell head {cached_head}, "
                 f"but this group's predictions come from {head_id}. The operating point is head-specific; "
-                "use a separate output workspace or explicitly recalibrate its threshold cache."
+                "use a separate output workspace or explicitly rewrite its threshold record."
             )
         was = int(cached.get("n_slides_pooled", 0))
         if available > was and not partial_ok:
             raise SystemExit(
-                f"FATAL: cached threshold was calibrated on {was} slides, but this group now has {available} available.\n"
-                f"  The group gained more slides, so the old threshold is no longer its quantile.\n"
-                f"  Delete {TAU_FILE} and recalibrate, or set CELL_TAU_PARTIAL_OK=1 to explicitly accept it (its outputs are partial).")
+                f"FATAL: cached threshold record covers {was} slides, but this group now has {available} available.\n"
+                f"  Delete {TAU_FILE} and rewrite the record, or set CELL_TAU_PARTIAL_OK=1 to explicitly accept it (its outputs are partial).")
         return cached
     if available < len(slides) and not partial_ok:
         raise SystemExit(
-            f"FATAL: threshold should be calibrated on {len(slides)} slides, but only {available} have inference results.\n"
-            f"  Wait for this group's inference to finish before calibrating, or set CELL_TAU_PARTIAL_OK=1 to explicitly accept it (its outputs are partial).")
-    if os.environ.get("CELL_TAU_ABS_MODE"):
-        tau = float(os.environ.get("CELL_TAU_ABS", TAU_ABS))
-        pool_n = 0
-        n_pos = 0
-        n_slides = 0
-        for slide in slides:
-            path = PRED / f"{slide}.parquet"
-            if not path.exists():
-                continue
-            frame = pd.read_parquet(path, columns=["scored", "schwann_prob"])
-            values = frame.loc[frame.scored, "schwann_prob"].to_numpy(np.float32)
-            pool_n += values.size
-            n_slides += 1
-            n_pos += int((values > tau).sum())
-        record = {
-            "mode": "absolute", "rule": "explicit absolute probability threshold",
-            "tau": tau, "tau_source": "CELL_TAU_ABS or the default absolute runtime setting",
-            "achieved_pos_frac": (n_pos / pool_n) if pool_n else 0.0,
-            "n_cells_pooled": pool_n, "n_slides_pooled": n_slides,
-            "n_slides_requested": len(slides), "head_experiment_id": head_id,
-        }
-        TAU_FILE.write_text(json.dumps(record, indent=2))
-        print(f"[tau] absolute {tau} -> {n_pos:,}/{pool_n:,} cells "
-              f"({record['achieved_pos_frac']*100:.4f}%)", flush=True)
-        return record
-    pool = []
+            f"FATAL: the threshold record should cover {len(slides)} slides, but only {available} have inference results.\n"
+            f"  Wait for this group's inference to finish before writing the threshold record, or set CELL_TAU_PARTIAL_OK=1 to explicitly accept it (its outputs are partial).")
+    tau = requested_tau
+    pool_n = 0
+    n_pos = 0
+    n_slides = 0
     for slide in slides:
         path = PRED / f"{slide}.parquet"
         if not path.exists():
             continue
         frame = pd.read_parquet(path, columns=["scored", "schwann_prob"])
-        pool.append(frame.loc[frame.scored, "schwann_prob"].to_numpy(np.float32))
-    if not pool:
-        raise SystemExit("no predictions to calibrate on")
-    allp = np.concatenate(pool)
-    tau = float(np.quantile(allp, 1.0 - TARGET_POS_FRAC))
+        values = frame.loc[frame.scored, "schwann_prob"].to_numpy(np.float32)
+        pool_n += values.size
+        n_slides += 1
+        n_pos += int((values > tau).sum())
     record = {
-        "mode": "quantile", "target_pos_frac": TARGET_POS_FRAC, "tau": tau,
-        "achieved_pos_frac": float((allp > tau).mean()),
-        "n_cells_pooled": int(allp.size), "n_slides_pooled": len(pool),
-        "n_slides_requested": len(slides),
-        "rule": "transferred positive fraction; tau is the pooled quantile of this cancer group",
-        "project_id": project, "head_experiment_id": head_id,
+        "mode": "absolute", "rule": "explicit absolute probability threshold",
+        "tau": tau, "tau_source": "CELL_TAU_ABS or the default absolute runtime setting",
+        "achieved_pos_frac": (n_pos / pool_n) if pool_n else 0.0,
+        "n_cells_pooled": pool_n, "n_slides_pooled": n_slides,
+        "n_slides_requested": len(slides), "head_experiment_id": head_id,
     }
     TAU_FILE.write_text(json.dumps(record, indent=2))
-    print(f"[tau] {tau:.6f} from {allp.size:,} cells over {len(pool)} slides "
-          f"(achieved posfrac {record['achieved_pos_frac']:.5f})", flush=True)
+    print(f"[tau] absolute {tau} -> {n_pos:,}/{pool_n:,} cells "
+          f"({record['achieved_pos_frac']*100:.4f}%)", flush=True)
     return record
 
 
@@ -568,7 +528,7 @@ def main() -> None:
             print(f"[tau] {project}: {tau_of[project]:.5f} (forced for this run)", flush=True)
         else:
             print(f"[tau] {project}: {tau_of[project]:.5f} "
-                  f"(calibrated on {point.get('n_slides_pooled')} slides of this cancer type)", flush=True)
+                  f"(record over {point.get('n_slides_pooled')} slides of this cancer type)", flush=True)
     if args.calibrate_only:
         return
 

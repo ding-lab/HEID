@@ -49,7 +49,7 @@ def main():
  with tempfile.TemporaryDirectory(prefix='heid-smoke-') as td:
   f=Path(td)/'a.npz';np.savez(f,experiment_id=np.array('other_head'))
   try:
-   nin.check_probability_source(np.load(f),'v8_all5k_cls_sigma3_v1',f);raise AssertionError('foreign head accepted')
+   nin.check_probability_source(np.load(f),'v12_cls_sigma3_region_schwann_v1',f);raise AssertionError('foreign head accepted')
   except ValueError:pass
  checks.append('Nerve: probabilities of a head other than the frame source are refused')
  tls=load('tls','tls/define/scripts/tls_maturity.py')

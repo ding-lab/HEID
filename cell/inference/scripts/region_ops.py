@@ -10,7 +10,7 @@ sys.path.insert(0, str(_RELEASE / "nerve/prediction/scripts"))
 import region_operator as OP
 
 PANEL = "5k"
-MIN_CONFIDENCE = os.environ.get("NERVE_CONFIDENCE", "high")
+MIN_CONFIDENCE = os.environ.get("NERVE_CONFIDENCE", "all")
 
 
 FILL_ALL = os.environ.get("NERVE_FILL_ALL", "") == "1"

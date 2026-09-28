@@ -186,9 +186,9 @@
     },
     {
       "name": "cell_model",
-      "path": "${PROJECTS_ROOT}/cell/outputs/models/{head/cls_sigma3_all_schwann, adapters/raw_rgb}",
+      "path": "${PROJECTS_ROOT}/cell/outputs/models/{head/cls_sigma3, adapters/raw_rgb}",
       "env": "THREED_CELL_HEAD_DIR",
-      "format": "Cell reference head (fold 0) and its UNI2-h and Phikon-v2 LoRA adapters; UNI2-h, Phikon-v2 and the fine-tuned InstanSeg weights as described by cell/configs/inputs.schema.json",
+      "format": "Cell classifier head (fold 0) and its UNI2-h and Phikon-v2 LoRA adapters; UNI2-h, Phikon-v2 and the fine-tuned InstanSeg weights as described by cell/configs/inputs.schema.json",
       "consumed_by": [
         "scripts/infer_cells.py",
         "scripts/tissue_grid.py",

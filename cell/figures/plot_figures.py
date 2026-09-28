@@ -38,9 +38,10 @@ def save(fig, stem):
     plt.close(fig)
 
 
-order = sorted(classes, key=lambda c: f1[c], reverse=True)
+shown = [c for c in classes if c != "Others"]
+order = sorted(shown, key=lambda c: f1[c], reverse=True)
 vals = [f1[c] for c in order]
-colors = [MUTED if c == "Others" else BLUE for c in order]
+colors = [BLUE for c in order]
 
 fig, ax = plt.subplots(figsize=(8.0, 5.2))
 y = np.arange(len(order))[::-1]
@@ -59,10 +60,15 @@ save(fig, "01_per_class_f1_cls_sigma3")
 
 row_sum = cm.sum(axis=1, keepdims=True)
 norm = cm / np.maximum(row_sum, 1)
+
+
+keep = [classes.index(c) for c in shown]
+norm = norm[np.ix_(keep, keep)]
 cmap = LinearSegmentedColormap.from_list("blues_seq", ["#f7f9fc", BLUE_LIGHT, "#7fb0e6", BLUE, "#0b3f86"])
 
 fig, ax = plt.subplots(figsize=(9.6, 8.6))
 im = ax.imshow(norm, cmap=cmap, vmin=0, vmax=1, aspect="equal")
+classes = shown
 short = [label(c) for c in classes]
 ax.set_xticks(range(len(classes))); ax.set_yticks(range(len(classes)))
 ax.set_xticklabels(short, rotation=45, ha="right", fontsize=9)

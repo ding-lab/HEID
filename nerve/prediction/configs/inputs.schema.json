@@ -3,8 +3,7 @@
   "branch": "nerve/prediction",
   "order": [
     "scripts/region_operator.py run_operator and membership over a selected-cell table",
-    "scripts/operator_runs.py --arm CELL",
-    "scripts/transferred_operating_point.py"
+    "scripts/operator_runs.py --arm CELL"
   ],
   "inputs": [
     {
@@ -23,29 +22,7 @@
         }
       },
       "consumed_by": [
-        "scripts/operator_runs.py",
-        "scripts/transferred_operating_point.py"
-      ]
-    },
-    {
-      "name": "folds",
-      "argument": "--folds",
-      "default_path": "data/folds_he_safe.json",
-      "format": "JSON",
-      "fields": {
-        "per_sample": "list of {sample, fold_he_safe}",
-        "assignment_sha256": "hex identity of the assignment"
-      },
-      "consumed_by": [
-        "scripts/transferred_operating_point.py"
-      ]
-    },
-    {
-      "name": "replay",
-      "argument": "--replay",
-      "produced_by": "scripts/operator_runs.py --arm CELL",
-      "consumed_by": [
-        "scripts/transferred_operating_point.py"
+        "scripts/operator_runs.py"
       ]
     },
     {
@@ -76,7 +53,7 @@
       "name": "cell_oof",
       "path": "<cell oof dir>/fold*/<sample>.npz",
       "argument": "--cell-oof",
-      "produced_by": "cell/scripts/train_fold.py (arm_cls_sigma3_all_schwann.json)",
+      "produced_by": "cell/configs/arm_cls_sigma3.json",
       "keys": {
         "cell": "cell identifiers",
         "prob": "[N, classes] probabilities",
@@ -87,7 +64,6 @@
     }
   ],
   "outputs": {
-    "operator": "<PROJECTS_ROOT>/nerve/prediction/outputs/operator_<arm>.json or --output",
-    "transfer": "<PROJECTS_ROOT>/nerve/prediction/outputs/transferred_operating_point.json or --output"
+    "operator": "<PROJECTS_ROOT>/nerve/prediction/outputs/operator_<arm>.json or --output"
   }
 }
